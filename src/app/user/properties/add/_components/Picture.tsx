@@ -18,7 +18,11 @@ interface Props {
 const Picture = (props: Props) => {
   return (
     <Card className={cn("p-3", props.className)}>
-      <FileInput onSelect={(e) => props.setImages([(e as any).target.files[0], ...props.images])} />
+      <FileInput
+        onSelect={(e) =>
+          props.setImages([(e as any).target.files[0], ...props.images])
+        }
+      />
       <div className="flex gap-3 flex-wrap">
         {props.savedImagesUrl!! &&
           props.setSavedImageUrl!! &&
@@ -30,7 +34,9 @@ const Picture = (props: Props) => {
                 index={index}
                 onDelete={(i) =>
                   props.setSavedImageUrl!! &&
-                  props.setSavedImageUrl(props.savedImagesUrl!.filter((img) => img.id !== image.id))
+                  props.setSavedImageUrl(
+                    props.savedImagesUrl!.filter((img) => img.id !== image.id)
+                  )
                 }
               />
             );
@@ -44,7 +50,10 @@ const Picture = (props: Props) => {
               src={srcUrl}
               index={index}
               onDelete={(i) =>
-                props.setImages([...props.images.slice(0, i), ...props.images.slice(i + 1)])
+                props.setImages([
+                  ...props.images.slice(0, i),
+                  ...props.images.slice(i + 1),
+                ])
               }
             />
           );
@@ -57,7 +66,7 @@ const Picture = (props: Props) => {
           color="primary"
           className="w-36"
         >
-          Previous
+          Geri
         </Button>
         <Button
           onClick={props.next}
@@ -65,7 +74,7 @@ const Picture = (props: Props) => {
           color="primary"
           className="w-36"
         >
-          Next
+          İleri
         </Button>
       </div>
     </Card>

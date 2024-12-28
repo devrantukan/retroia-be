@@ -1,45 +1,140 @@
-import { ChevronLeftIcon, ChevronRightIcon, PlusCircleIcon } from "@heroicons/react/16/solid";
-import { Button, Card, Input, cn } from "@nextui-org/react";
-import React from "react";
-import { useFormContext } from "react-hook-form";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusCircleIcon,
+} from "@heroicons/react/16/solid";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Input,
+  Select,
+  SelectItem,
+  cn,
+} from "@nextui-org/react";
+import React, { useEffect } from "react";
+import { Controller, useFormContext } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
+import { OfficeWorker, PropertyDescriptorCategory } from "@prisma/client";
+
+import axios from "axios";
 
 interface Props {
   prev: () => void;
   className?: string;
+  agents: OfficeWorker[];
+  role: string;
+  descriptorCategories: any[];
+  dbDescriptors: any[];
 }
-const Contact = ({ prev, className }: Props) => {
+const Contact = ({
+  prev,
+  className,
+  agents,
+  role,
+  descriptorCategories,
+  dbDescriptors,
+}: Props) => {
   const {
     register,
     formState: { errors },
     control,
     getValues,
   } = useFormContext<AddPropertyInputType>();
+  const [selectedTypeId, setSelectedTypeId] = React.useState(0);
+
+  const [descriptorsGrouped, setDescriptorsGrouped] = React.useState<
+    Record<string, any[]>
+  >({});
+
+  const typeId = getValues().typeId;
+
+  const propertyDescriptors = getValues().propertyDescriptors;
+
+  console.log("pd", propertyDescriptors);
+
+  const [descriptors, setDescriptors] = React.useState<any[]>([]);
+
+  console.log("dd desc", dbDescriptors);
+
+  let descriptorsList: number[] = [];
+  dbDescriptors.forEach((key) => {
+    descriptorsList.push(key.descriptorId);
+  });
+
+  console.log("list", descriptorsList);
+
   return (
-    <Card className={cn("grid grid-cols-1 md:grid-cols-3 gap-3 p-2", className)}>
-      <Input
-        {...register("contact.name")}
-        errorMessage={errors.contact?.name?.message}
-        isInvalid={!!errors.contact?.name}
-        label="Contact Name"
-        defaultValue={getValues("contact.name")}
-      />
+    <Card className={cn("", className)}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 p-2 ">
+        {role == "office-workers" && (
+          <Input
+            {...register("agentId")}
+            errorMessage={errors.agentId?.message}
+            isInvalid={!!errors.agentId}
+            label="Agent ID"
+            defaultValue={String(getValues("agentId"))}
+            className="w-full"
+          />
+        )}
+        {role == "site-admin" && (
+          <Select
+            {...register("agentId", { setValueAs: (v: any) => v.toString() })}
+            errorMessage={errors.agentId?.message}
+            isInvalid={!!errors.agentId}
+            label="Gayrimenkul Danışmanı"
+            selectionMode="single"
+            name="agentId"
+            {...(getValues().agentId
+              ? { defaultSelectedKeys: [getValues().agentId.toString()] }
+              : {})}
+          >
+            {agents.map((item) => (
+              <SelectItem key={item.id} value={item.id}>
+                {item.name} {item.surname}
+              </SelectItem>
+            ))}
+          </Select>
+        )}
+      </div>
+      {descriptorCategories &&
+        descriptorCategories
+          .filter((descriptorCategory) => descriptorCategory.typeId == typeId)
+          .map((descriptorCategory) => (
+            <div key={descriptorCategory.id} className="p-4">
+              <h2>{descriptorCategory.value}</h2>
+              {descriptorCategory.descriptors &&
+                descriptorCategory.descriptors.map(
+                  (descriptor: {
+                    id: string | number;
+                    value: string;
+                    slug: string;
+                  }) => (
+                    <div key={descriptor.id}>
+                      <Controller
+                        control={control}
+                        name={`propertyDescriptors.${descriptor.slug}` as any}
+                        defaultValue={descriptorsList.includes(
+                          Number(descriptor.id)
+                        )}
+                        render={({ field }) => (
+                          <Checkbox
+                            id={String(descriptor.id)}
+                            {...field}
+                            value={descriptor.slug}
+                            isSelected={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            {descriptor.value}
+                          </Checkbox>
+                        )}
+                      />
+                    </div>
+                  )
+                )}
+            </div>
+          ))}
 
-      <Input
-        {...register("contact.phone")}
-        errorMessage={errors.contact?.phone?.message}
-        isInvalid={!!errors.contact?.phone}
-        label="Phone"
-        defaultValue={getValues("contact.phone")}
-      />
-
-      <Input
-        {...register("contact.email")}
-        errorMessage={errors.contact?.email?.message}
-        isInvalid={!!errors.contact?.email}
-        label="Email"
-        defaultValue={getValues("contact.email")}
-      />
       <div className="flex justify-center col-span-3 gap-3">
         <Button
           onClick={prev}
@@ -47,7 +142,7 @@ const Contact = ({ prev, className }: Props) => {
           color="primary"
           className="w-36"
         >
-          Previous
+          Geri
         </Button>
         <Button
           endContent={<PlusCircleIcon className="w-6" />}
@@ -55,11 +150,10 @@ const Contact = ({ prev, className }: Props) => {
           className="w-36"
           type="submit"
         >
-          Save
+          Kaydet
         </Button>
       </div>
     </Card>
   );
 };
-
 export default Contact;

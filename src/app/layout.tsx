@@ -4,8 +4,7 @@ import "./globals.css";
 import { Providers } from "./components/providers";
 import Appbar from "./components/Appbar";
 import SignInPanel from "./components/signInPanel";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer, toast } from "react-toastify";
 
 const inter = Inter({ subsets: ["latin"] });
 

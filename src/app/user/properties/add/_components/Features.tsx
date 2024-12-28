@@ -1,5 +1,13 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/16/solid";
-import { Button, Card, Checkbox, Input, cn } from "@nextui-org/react";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Input,
+  Select,
+  SelectItem,
+  cn,
+} from "@nextui-org/react";
 import React from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
@@ -10,6 +18,26 @@ interface Props {
   className?: string;
 }
 const Features = (props: Props) => {
+  const bedrooms = [
+    { id: 1, value: "1+0" },
+    { id: 2, value: "1+1" },
+    { id: 3, value: "2+1" },
+    { id: 4, value: "2+2" },
+    { id: 5, value: "3+1" },
+    { id: 6, value: "3+2" },
+    { id: 7, value: "4+1" },
+    { id: 8, value: "4+2" },
+    { id: 9, value: "5+1" },
+    { id: 10, value: "5+2" },
+    { id: 11, value: "6+1" },
+    { id: 12, value: "6+2" },
+  ];
+  const bathrooms = [
+    { id: 1, value: "1" },
+    { id: 2, value: "2" },
+    { id: 3, value: "3" },
+    { id: 4, value: "4" },
+  ];
   const {
     register,
     formState: { errors },
@@ -23,106 +51,162 @@ const Features = (props: Props) => {
         "propertyFeature.area",
         "propertyFeature.bathrooms",
         "propertyFeature.bedrooms",
-        "propertyFeature.parkingSpots",
+        "propertyFeature.floor",
+        "propertyFeature.totalFloor",
       ])
     )
       props.next();
   };
   return (
-    <Card className={cn("p-2  grid grid-cols-1 md:grid-cols-2 gap-3", props.className)}>
-      <Input
-        {...register("propertyFeature.bedrooms")}
-        errorMessage={errors.propertyFeature?.bedrooms?.message}
-        isInvalid={!!errors.propertyFeature?.bedrooms}
-        label="Bedrooms"
-        defaultValue={getValues().propertyFeature.bedrooms.toString()}
-      />
-
-      <Input
-        {...register("propertyFeature.bathrooms")}
-        errorMessage={errors.propertyFeature?.bathrooms?.message}
-        isInvalid={!!errors.propertyFeature?.bathrooms}
-        label="Bathrooms"
-        defaultValue={getValues().propertyFeature.bathrooms.toString()}
-      />
-      <Input
-        {...register("propertyFeature.parkingSpots")}
-        errorMessage={errors.propertyFeature?.parkingSpots?.message}
-        isInvalid={!!errors.propertyFeature?.parkingSpots}
-        label="Parking Spots"
-        defaultValue={getValues().propertyFeature.parkingSpots.toString()}
-      />
-
-      <Input
-        {...register("propertyFeature.area")}
-        errorMessage={errors.propertyFeature?.area?.message}
-        isInvalid={!!errors.propertyFeature?.area}
-        label="Area"
-        defaultValue={getValues().propertyFeature.area.toString()}
-      />
-      <div className="flex items-center justify-between ">
-        <Controller
-          control={control}
-          name="propertyFeature.hasSwimmingPool"
-          render={({ field }) => (
-            <Checkbox
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              defaultValue={getValues().propertyFeature.hasSwimmingPool ? "true" : "false"}
+    <Card className={cn("p-2 ", props.className)}>
+      <div className="flex flex-col  gap-y-4">
+        <div className="flex lg:flex-row flex-col gap-4">
+          <div className="lg:w-1/2 w-full flex flex-col gap-4 ">
+            <Select
+              {...register("propertyFeature.bedrooms", {
+                setValueAs: (v: any) => v.toString(),
+              })}
+              errorMessage={errors.propertyFeature?.bedrooms?.message}
+              isInvalid={!!errors.propertyFeature?.bedrooms}
+              label="Oda sayısı"
+              selectionMode="single"
+              name="propertyFeature.bedrooms"
+              {...(getValues().propertyFeature &&
+              getValues().propertyFeature.bedrooms
+                ? {
+                    defaultSelectedKeys: [
+                      getValues().propertyFeature.bedrooms.toString(),
+                    ],
+                  }
+                : {})}
             >
-              Has Swimming Pool
-            </Checkbox>
-          )}
-        />
+              {bedrooms.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.value}
+                </SelectItem>
+              ))}
+            </Select>
 
-        <Controller
-          control={control}
-          name="propertyFeature.hasGardenYard"
-          render={({ field }) => (
-            <Checkbox
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              defaultValue={getValues().propertyFeature.hasGardenYard ? "true" : "false"}
+            <Select
+              {...register("propertyFeature.bathrooms", {
+                setValueAs: (v: any) => v.toString(),
+              })}
+              errorMessage={errors.propertyFeature?.bathrooms?.message}
+              isInvalid={!!errors.propertyFeature?.bathrooms}
+              label="Banyo sayısı"
+              selectionMode="single"
+              name="propertyFeature.bathrooms"
+              {...(getValues().propertyFeature &&
+              getValues().propertyFeature.bathrooms
+                ? {
+                    defaultSelectedKeys: [
+                      getValues().propertyFeature.bathrooms.toString(),
+                    ],
+                  }
+                : {})}
             >
-              Has Gard/Yard
-            </Checkbox>
-          )}
-        />
+              {bathrooms.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.value}
+                </SelectItem>
+              ))}
+            </Select>
 
-        <Controller
-          control={control}
-          name="propertyFeature.hasBalcony"
-          render={({ field }) => (
-            <Checkbox
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              defaultValue={getValues().propertyFeature.hasBalcony ? "true" : "false"}
-            >
-              Has Balcony/Patio
-            </Checkbox>
-          )}
-        />
-      </div>
-      <div className="flex justify-center col-span-2 gap-3">
-        <Button
-          onClick={props.prev}
-          startContent={<ChevronLeftIcon className="w-6" />}
-          color="primary"
-          className="w-36"
-        >
-          Previous
-        </Button>
-        <Button
-          onClick={handleNext}
-          endContent={<ChevronRightIcon className="w-6" />}
-          color="primary"
-          className="w-36"
-        >
-          Next
-        </Button>
+            <Input
+              {...register("propertyFeature.floor", { valueAsNumber: true })}
+              errorMessage={errors.propertyFeature?.floor?.message}
+              isInvalid={!!errors.propertyFeature?.floor}
+              label="Bulunduğu Kat"
+              {...(getValues().propertyFeature &&
+              getValues().propertyFeature.floor
+                ? {
+                    defaultValue: getValues().propertyFeature.floor.toString(),
+                  }
+                : {})}
+            />
+          </div>
+          <div className="lg:w-1/2 w-full flex flex-col gap-4 ">
+            <Input
+              {...register("propertyFeature.totalFloor", {
+                valueAsNumber: true,
+              })}
+              errorMessage={errors.propertyFeature?.totalFloor?.message}
+              isInvalid={!!errors.propertyFeature?.totalFloor}
+              label="Binadaki kat sayısı"
+              {...(getValues().propertyFeature &&
+              getValues().propertyFeature.totalFloor
+                ? {
+                    defaultValue:
+                      getValues().propertyFeature.totalFloor.toString(),
+                  }
+                : {})}
+            />
+
+            <Input
+              {...register("propertyFeature.area", { valueAsNumber: true })}
+              errorMessage={errors.propertyFeature?.area?.message}
+              isInvalid={!!errors.propertyFeature?.area}
+              label="Toplam alan (m2)"
+              {...(getValues().propertyFeature &&
+              getValues().propertyFeature.area
+                ? {
+                    value: getValues().propertyFeature.area.toString(),
+                  }
+                : {})}
+            />
+          </div>
+        </div>
+        <div>
+          <Controller
+            control={control}
+            name="propertyFeature.hasSwimmingPool"
+            render={({ field }) => (
+              <Checkbox onChange={field.onChange} onBlur={field.onBlur}>
+                Yüzme havuzu var
+              </Checkbox>
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="propertyFeature.hasGardenYard"
+            render={({ field }) => (
+              <Checkbox onChange={field.onChange} onBlur={field.onBlur}>
+                Bahçe var
+              </Checkbox>
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="propertyFeature.hasBalcony"
+            render={({ field }) => (
+              <Checkbox onChange={field.onChange} onBlur={field.onBlur}>
+                Balkon var
+              </Checkbox>
+            )}
+          />
+        </div>
+        <div className="flex justify-center col-span-2 gap-3">
+          <Button
+            onClick={props.prev}
+            startContent={<ChevronLeftIcon className="w-6" />}
+            color="primary"
+            className="w-36"
+          >
+            Geri
+          </Button>
+          <Button
+            onClick={handleNext}
+            endContent={<ChevronRightIcon className="w-6" />}
+            color="primary"
+            className="w-36"
+          >
+            İleri
+          </Button>
+        </div>
       </div>
     </Card>
   );
 };
-
 export default Features;

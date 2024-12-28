@@ -1,6 +1,12 @@
 "use client";
 import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs";
-import { Dropdown, DropdownTrigger, User, DropdownMenu, DropdownItem } from "@nextui-org/react";
+import {
+  Dropdown,
+  DropdownTrigger,
+  User,
+  DropdownMenu,
+  DropdownItem,
+} from "@nextui-org/react";
 import { User as PrismaUser } from "@prisma/client";
 import Link from "next/link";
 import React from "react";
@@ -24,13 +30,13 @@ const UserProfilePanel = ({ user }: Props) => {
       </DropdownTrigger>
       <DropdownMenu aria-label="User Actions" variant="flat">
         <DropdownItem>
-          <Link href="/user/profile">Profile</Link>
+          <Link href="/user/profile">Profil</Link>
         </DropdownItem>
         <DropdownItem>
-          <Link href="/user/properties">Properties</Link>
+          <Link href="/user/properties">İlan Listesi</Link>
         </DropdownItem>
         <DropdownItem key="logout" color="danger">
-          <LogoutLink>Log Out</LogoutLink>
+          <LogoutLink>Çıkış</LogoutLink>
         </DropdownItem>
       </DropdownMenu>
     </Dropdown>

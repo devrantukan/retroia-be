@@ -5,6 +5,50 @@ import prisma from "../prisma";
 import { Property } from "@prisma/client";
 import { redirect } from "next/navigation";
 
+export async function managePropertyDescriptor(descriptorId: number) {
+  const descriptorDetails = await prisma.propertyDescriptor.findUnique({
+    where: {
+      id: descriptorId,
+    },
+  });
+  if (descriptorDetails) {
+    console.log("here", descriptorDetails.slug);
+    return await descriptorDetails;
+  }
+  return null;
+}
+export async function manageDescriptorData(
+  descriptorData: Record<string, any>,
+  propertyId: number
+) {
+  let updateData: { propertyId: number; descriptorId: number }[] = [];
+
+  const deletePropertyDescriptors =
+    await prisma.descriptorsOnProperties.deleteMany({
+      where: { propertyId: propertyId },
+    });
+  console.log(deletePropertyDescriptors);
+  await Promise.all(
+    Object.entries(descriptorData)
+      .filter((data) => JSON.parse(data[1]) === true)
+
+      .map(async ([key]) => {
+        const descriptors = await prisma.propertyDescriptor.findMany({
+          where: {
+            slug: key,
+          },
+        });
+        // console.log(descriptors);
+        const descriptor = descriptors[0]; // Get the first descriptor if any
+        updateData.push({
+          propertyId: propertyId,
+          descriptorId: descriptor?.id ?? 0,
+        });
+      })
+  );
+  console.log(updateData);
+  return { updateData };
+}
 export async function saveProperty(
   propertyData: AddPropertyInputType,
   imagesUrls: string[],
@@ -16,20 +60,32 @@ export async function saveProperty(
     price: propertyData.price,
     statusId: propertyData.statusId,
     typeId: propertyData.typeId,
-    userId,
+    subTypeId: propertyData.typeId,
+    contractId: propertyData.contractId,
+    userId: userId,
+    agentId: propertyData.agentId,
   };
   const result = await prisma.property.create({
     data: {
       ...basic,
       location: {
-        create: propertyData.location,
+        create: {
+          ...propertyData.location,
+          latitude: 0,
+          longitude: 0,
+          state: propertyData.location.state ?? "",
+          region: propertyData.location.region ?? "",
+          landmark: propertyData.location.landmark ?? "",
+        },
       },
       feature: {
         create: propertyData.propertyFeature,
       },
-      contact: {
-        create: propertyData.contact,
-      },
+
+      // contact: {
+      //   create: propertyData.contact,
+      // },
+      userId: userId,
       images: {
         create: imagesUrls.map((img) => ({
           url: img,
@@ -40,13 +96,14 @@ export async function saveProperty(
   console.log({ result });
   return result;
 }
-
 export async function editProperty(
   propertyId: number,
   propertyData: AddPropertyInputType,
   newImagesUrls: string[],
   deletedImageIDs: number[]
 ) {
+  console.log(propertyData.propertyDescriptors);
+
   const result = await prisma.property.update({
     where: {
       id: propertyId,
@@ -54,14 +111,11 @@ export async function editProperty(
     data: {
       name: propertyData.name,
       price: propertyData.price,
-      statusId: propertyData.statusId,
       typeId: propertyData.typeId,
+      subTypeId: propertyData.typeId,
+      contractId: propertyData.contractId,
       description: propertyData.description,
-      contact: {
-        update: {
-          ...propertyData.contact,
-        },
-      },
+      statusId: propertyData.statusId,
       feature: {
         update: {
           ...propertyData.propertyFeature,
@@ -71,6 +125,17 @@ export async function editProperty(
         update: {
           ...propertyData.location,
         },
+      },
+      descriptors: {
+        deleteMany: {},
+        create: (
+          await manageDescriptorData(
+            propertyData.propertyDescriptors,
+            propertyId
+          )
+        ).updateData.map(({ propertyId, descriptorId }) => ({
+          descriptorId,
+        })),
       },
       images: {
         create: newImagesUrls.map((img) => ({
@@ -86,7 +151,6 @@ export async function editProperty(
   console.log({ result });
   return result;
 }
-
 export async function deleteProperty(id: number) {
   const result = await prisma.property.delete({
     where: {

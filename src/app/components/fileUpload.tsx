@@ -32,13 +32,21 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
     return (
       <div className={className}>
         {lablText && (
-          <label className="block text-gray-600 text-xs lg:text-sm xl:text-base mb-2" htmlFor="txt">
+          <label
+            className="block text-gray-600 text-xs lg:text-sm xl:text-base mb-2"
+            htmlFor="txt"
+          >
             {lablText}
           </label>
         )}
-        <label className={" w-full  relative border flex  rounded-md cursor-pointer  group"}>
+        <label
+          className={
+            " w-full  relative border flex  rounded-md cursor-pointer  group"
+          }
+        >
           <div
-            className={` inline-block h-full  py-3 rounded-l-md px-2  text-white transition duration-500  bg-primary-500 hover:bg-primary-700 hover:bg-gra  shadow shadow-violet-600/25 hover:shadow-primary-600/75`}>
+            className={` inline-block h-full  py-3 rounded-l-md px-2  text-white transition duration-500  bg-primary-500 hover:bg-primary-700 hover:bg-gra  shadow shadow-violet-600/25 hover:shadow-primary-600/75`}
+          >
             <input
               className="hidden"
               ref={ref}
@@ -46,11 +54,13 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
               {...props}
               type="file"
             />
-            Upload File
+            Dosya Yükle
           </div>
           <span className="mx-2">{fileName}</span>
         </label>
-        {error && <p className="text-red-600 text-right animate-shake">{error}</p>}
+        {error && (
+          <p className="text-red-600 text-right animate-shake">{error}</p>
+        )}
       </div>
     );
   }
