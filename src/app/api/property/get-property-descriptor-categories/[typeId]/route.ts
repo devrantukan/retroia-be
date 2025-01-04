@@ -8,9 +8,9 @@ export async function GET(
   response: NextResponse
 ) {
   const descriptors = await prisma.propertyDescriptorCategory.findMany({
-    where: {
-      typeId: +params.typeId,
-    },
+    // where: {
+    //   typeId: +params.typeId,
+    // },
     include: {
       descriptors: true,
     },

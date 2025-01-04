@@ -18,9 +18,9 @@ const EditPropertyPage = async ({ params }: Props) => {
     agents,
     countries,
     cities,
-    districts,
-    neighborhoods,
-    descriptorCategories,
+    // districts,
+    //  neighborhoods,
+    // descriptorCategories,
   ] = await Promise.all([
     prisma.propertyType.findMany(),
     prisma.propertySubType.findMany(),
@@ -45,11 +45,11 @@ const EditPropertyPage = async ({ params }: Props) => {
     }),
     prisma.country.findMany(),
     prisma.city.findMany(),
-    prisma.district.findMany(),
-    prisma.neighborhood.findMany(),
-    prisma.propertyDescriptorCategory.findMany({
-      include: { descriptors: true },
-    }),
+    // prisma.district.findMany(),
+    //  prisma.neighborhood.findMany(),
+    // prisma.propertyDescriptorCategory.findMany({
+    //   include: { descriptors: true },
+    // }),
   ]);
 
   let citiesObj: Record<string, string[]> = {};
@@ -64,33 +64,33 @@ const EditPropertyPage = async ({ params }: Props) => {
     citiesObj[country.country_name] = cityNames;
   }
 
-  let districtsObj: Record<string, string[]> = {};
-  for (const city of cities) {
-    const districtData = await prisma.district.findMany({
-      where: {
-        city_name: city.city_name,
-      },
-    });
-    const districtNames = districtData.map(
-      (district) => district.district_name
-    );
+  // let districtsObj: Record<string, string[]> = {};
+  // for (const city of cities) {
+  //   const districtData = await prisma.district.findMany({
+  //     where: {
+  //       city_name: city.city_name,
+  //     },
+  //   });
+  //   const districtNames = districtData.map(
+  //     (district) => district.district_name
+  //   );
 
-    districtsObj[city.city_name] = districtNames;
-  }
+  //   districtsObj[city.city_name] = districtNames;
+  // }
 
-  let neighborhoodsObj: Record<string, string[]> = {};
-  for (const district of districts) {
-    const neighborhoodsData = await prisma.neighborhood.findMany({
-      where: {
-        district_name: district.district_name,
-      },
-    });
-    const neighborhoodNames = neighborhoodsData.map(
-      (neighborhood) => neighborhood.neighborhood_name
-    );
+  // let neighborhoodsObj: Record<string, string[]> = {};
+  // for (const district of districts) {
+  //   const neighborhoodsData = await prisma.neighborhood.findMany({
+  //     where: {
+  //       district_name: district.district_name,
+  //     },
+  //   });
+  //   const neighborhoodNames = neighborhoodsData.map(
+  //     (neighborhood) => neighborhood.neighborhood_name
+  //   );
 
-    neighborhoodsObj[district.district_name] = neighborhoodNames;
-  }
+  //   neighborhoodsObj[district.district_name] = neighborhoodNames;
+  // }
   const { getUser } = getKindeServerSession();
   const user = await getUser();
 
@@ -112,10 +112,10 @@ const EditPropertyPage = async ({ params }: Props) => {
       countries={countries}
       cities={cities}
       citiesObj={citiesObj}
-      districts={districts}
-      districtsObj={districtsObj}
-      neighborhoods={neighborhoods}
-      neighborhoodsObj={neighborhoodsObj}
+      //  districts={districts}
+      // districtsObj={districtsObj}
+      // neighborhoods={neighborhoods}
+      // neighborhoodsObj={neighborhoodsObj}
       role={role}
       agents={agents}
       types={propertyTypes}
@@ -124,7 +124,7 @@ const EditPropertyPage = async ({ params }: Props) => {
       contracts={propertyContracts}
       property={property}
       isEdit={true}
-      descriptorCategories={descriptorCategories}
+      // descriptorCategories={descriptorCategories}
     />
   );
 };

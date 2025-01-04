@@ -4,7 +4,7 @@ import React from "react";
 import PropertiesTable from "./_components/PropertiesTable";
 import { getUserById } from "@/lib/actions/user";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 12;
 
 interface Props {
   searchParams: { [key: string]: string | string[] | undefined };

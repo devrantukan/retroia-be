@@ -27,8 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import RichTextEditor from "./RichTextEditor";
-import RichTextEditorAbout from "./RichTextEditorAbout";
+
 import { z } from "zod";
 import { toast } from "react-toastify";
 import dynamic from "next/dynamic";

@@ -20,7 +20,6 @@ import React, { useEffect } from "react";
 import { useForm, useFormContext, useFormState } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
 import { format } from "path";
-import RichTextEditor from "@/app/components/RichTextEditor";
 
 import dynamic from "next/dynamic";
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
@@ -44,24 +43,33 @@ const Basic = (props: Props) => {
     setValue,
   } = useFormContext<AddPropertyInputType>();
 
-  const [typeId, setTypeId] = React.useState(0);
+  const [typeId, setTypeId] = React.useState<number | undefined>(undefined);
+
+  const [subTypeId, setSubTypeId] = React.useState<number | undefined>(
+    getValues().subTypeId
+  );
+
   const [description, setDescription] = React.useState("");
 
-  //console.log("executed");
   useEffect(() => {
-    if (getValues().typeId) {
-      //   console.log("use effect called");
-      setTypeId(getValues().typeId);
+    const values = getValues();
+    if (values.typeId) {
+      setTypeId(values.typeId);
     }
-    if (getValues().description) {
-      //  console.log("use effect called");
-      setDescription(getValues().description);
+
+    if (values.subTypeId) {
+      // console.log(values.subTypeId);
+      setValue("subTypeId", values.subTypeId);
+      setSubTypeId(values.subTypeId);
     }
-  }, [getValues]);
+    if (values.description) {
+      setDescription(values.description);
+    }
+  }, [getValues, setValue]);
 
-  // console.log("getvalues", getValues().description);
-  // console.log("typeId is:", typeId);
-
+  //console.log("tid", typeId);
+  //console.log("stid", subTypeId);
+  //console.log("gvid", getValues().subTypeId);
   const handleNext = async () => {
     if (
       await trigger([
@@ -72,6 +80,7 @@ const Basic = (props: Props) => {
         "contractId",
         "statusId",
         "price",
+        "discountedPrice",
       ])
     )
       props.next();
@@ -81,6 +90,12 @@ const Basic = (props: Props) => {
     const newTypeId = Number(event.target.value);
     setTypeId(newTypeId);
     setValue("typeId", newTypeId);
+  };
+
+  const handleSubTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSubTypeId = Number(event.target.value);
+    setSubTypeId(newSubTypeId);
+    setValue("subTypeId", newSubTypeId);
   };
 
   const onEditorStateChange = (description: string) => {
@@ -100,7 +115,6 @@ const Basic = (props: Props) => {
         defaultValue={getValues().name}
       />
 
-      {/* <RichTextEditor defaultValue={getValues().description} /> */}
       <div className="w-full  h-[460px] p-2 bg-gray-100 rounded-xl">
         <p className="text-xs mb-1">Detaylı Bilgi</p>
         <ReactQuill
@@ -144,9 +158,11 @@ const Basic = (props: Props) => {
           label="Kontrat Tipi"
           selectionMode="single"
           name="contractId"
-          {...(getValues().contractId
-            ? { defaultSelectedKeys: [getValues().contractId.toString()] }
-            : {})}
+          defaultSelectedKeys={
+            getValues().contractId
+              ? [getValues().contractId.toString()]
+              : undefined
+          }
         >
           {props.contracts.map((item) => (
             <SelectItem key={item.id} value={item.id}>
@@ -162,11 +178,11 @@ const Basic = (props: Props) => {
           label="Gayrimenkul Tipi"
           selectionMode="single"
           name="typeId"
-          value={typeId}
+          value={typeId?.toString()}
           onChange={handleTypeChange}
-          {...(getValues().typeId
-            ? { defaultSelectedKeys: [getValues().typeId.toString()] }
-            : {})}
+          defaultSelectedKeys={
+            getValues().typeId ? [getValues().typeId.toString()] : undefined
+          }
         >
           {props.types.map((item) => (
             <SelectItem key={item.id} value={item.id}>
@@ -181,15 +197,18 @@ const Basic = (props: Props) => {
           label="Gayrimenkul Alt Tipi"
           selectionMode="single"
           name="subTypeId"
-          disabled={!typeId}
-          {...(getValues().subTypeId
-            ? { defaultSelectedKeys: [getValues().subTypeId.toString()] }
-            : {})}
+          value={subTypeId?.toString()}
+          onChange={handleSubTypeChange}
+          defaultSelectedKeys={
+            getValues().subTypeId
+              ? [getValues().subTypeId.toString()]
+              : undefined
+          }
         >
           {props.subTypes
-            .filter((item) => item.typeId == typeId)
+            .filter((item) => item.typeId == getValues().typeId)
             .map((item) => (
-              <SelectItem key={item.id} value={item.id}>
+              <SelectItem key={item.id} value={item.value}>
                 {item.value}
               </SelectItem>
             ))}
@@ -203,9 +222,9 @@ const Basic = (props: Props) => {
           label="Durum"
           selectionMode="single"
           name="statusId"
-          {...(getValues().statusId
-            ? { defaultSelectedKeys: [getValues().statusId.toString()] }
-            : {})}
+          defaultSelectedKeys={
+            getValues().statusId ? [getValues().statusId.toString()] : undefined
+          }
         >
           {props.statuses.map((item) => (
             <SelectItem key={item.id} value={item.id}>
@@ -213,16 +232,23 @@ const Basic = (props: Props) => {
             </SelectItem>
           ))}
         </Select>
-
+        <Input
+          {...register("discountedPrice", {
+            setValueAs: (v: any) => v.toString(),
+          })}
+          errorMessage={errors.discountedPrice?.message}
+          isInvalid={!!errors.discountedPrice}
+          label="İndirimli Fiyat"
+          name="discountedPrice"
+          defaultValue={getValues().discountedPrice?.toString()}
+        />
         <Input
           {...register("price", { setValueAs: (v: any) => v.toString() })}
           errorMessage={errors.price?.message}
           isInvalid={!!errors.price}
           label="Fiyat"
           name="price"
-          {...(getValues().price
-            ? { defaultValue: getValues().price.toString() }
-            : {})}
+          defaultValue={getValues().price?.toString()}
         />
       </div>
       <div className="flex justify-center col-span-3 gap-3">

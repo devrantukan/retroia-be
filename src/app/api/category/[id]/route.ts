@@ -15,7 +15,7 @@ export async function GET(
       descriptors: true,
     },
   });
-  console.log(category);
+  //console.log(category);
 
   return NextResponse.json(category);
 }

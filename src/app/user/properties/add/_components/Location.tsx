@@ -13,6 +13,9 @@ import { useFormContext } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
 import { City, Country, District, Neighborhood } from "@prisma/client";
 import { set } from "zod";
+import LocationMap from "@/app/components/LocationPicker";
+import LocationPicker from "@/app/components/LocationPicker";
+import axios from "axios";
 
 interface Props {
   next: () => void;
@@ -20,11 +23,11 @@ interface Props {
   className?: string;
   countries: Country[];
   cities: City[];
-  districts: District[];
+  //  districts: District[];
   citiesObj: Record<any, any[]>; // Add this line
-  districtsObj: Record<any, any[]>;
-  neighborhoods: Neighborhood[];
-  neighborhoodsObj: Record<any, any[]>;
+  // districtsObj: Record<any, any[]>;
+  // neighborhoods: Neighborhood[];
+  // neighborhoodsObj: Record<any, any[]>;
 }
 const Location = (props: Props) => {
   // console.log("nb obj:", props.neighborhoodsObj);
@@ -37,24 +40,114 @@ const Location = (props: Props) => {
     setValue,
   } = useFormContext<AddPropertyInputType>();
 
-  const [city, setCity] = React.useState("");
-  const [country, setCountry] = React.useState("");
-  const [district, setDistrict] = React.useState("");
-  const [neighborhood, setNeighborhood] = React.useState("");
+  const [city, setCity] = React.useState(getValues().location?.city);
+  const [country, setCountry] = React.useState(getValues().location?.country);
+  const [district, setDistrict] = React.useState(
+    getValues().location?.district
+  );
+  const [neighborhood, setNeighborhood] = React.useState(
+    getValues().location?.neighborhood
+  );
 
   const [cityOptions, setCityOptions] = React.useState<string[]>([]);
-  const [districtOptions, setDistrictOptions] = React.useState<string[]>([]);
-  const [neighborhoodOptions, setNeighborhoodOptions] = React.useState<
-    string[]
-  >([]);
+  const [districtOptions, setDistrictOptions] = React.useState<any[]>([]);
+  const [neighborhoodOptions, setNeighborhoodOptions] = React.useState<any[]>(
+    []
+  );
 
-  //console.log("dist is", district);
+  const [latitude, setLatitude] = React.useState<number>(
+    getValues().location?.latitude ?? 0
+  );
 
-  const handleNeighborhoodSelectionChange = (
+  console.log(latitude);
+  const [longitude, setLongitude] = React.useState<number>(
+    getValues().location?.longitude ?? 0
+  );
+  // console.log("city ops", cityOptions);
+  // console.log("city ops", neighborhoodOptions);
+  async function findPlaces() {
+    const { Place } = (await google.maps.importLibrary(
+      "places"
+    )) as google.maps.PlacesLibrary;
+    const { AdvancedMarkerElement } = (await google.maps.importLibrary(
+      "marker"
+    )) as google.maps.MarkerLibrary;
+    const request = {
+      textQuery: "Tacos in Mountain View",
+      fields: ["displayName", "location", "businessStatus"],
+      includedType: "restaurant",
+      locationBias: { lat: 37.4161493, lng: -122.0812166 },
+      isOpenNow: true,
+      language: "en-US",
+      maxResultCount: 8,
+      minRating: 3.2,
+      region: "us",
+      useStrictTypeFiltering: false,
+    };
+
+    //@ts-ignore
+    const { places } = await Place.searchByText(request);
+
+    if (places.length) {
+      console.log(places);
+
+      const { LatLngBounds } = (await google.maps.importLibrary(
+        "core"
+      )) as google.maps.CoreLibrary;
+      const bounds = new LatLngBounds();
+
+      // Loop through and get all the results.
+      places.forEach((place) => {
+        console.log(place);
+      });
+    } else {
+      console.log("No results");
+    }
+  }
+
+  useEffect(() => {
+    const values = getValues();
+    if (values.location?.country) {
+      setCountry(values.location?.country);
+    }
+    if (values.location?.city) {
+      setCity(values.location?.city);
+    }
+  }, [getValues]);
+
+  const handleNeighborhoodSelectionChange = async (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     setNeighborhood(e.target.value);
     setValue("location.neighborhood", e.target.value);
+
+    try {
+      const response = await axios.get(
+        `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=izmir%20karaburun%20hasseki&inputtype=textquery&fields=formatted_address%2Cname%2Crating%2Copening_hours%2Cgeometry&key=AIzaSyBf_hX4WicWgAHxKSjeBD29dLXjB0xm3C4`,
+        {
+          headers: {
+            accept:
+              "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "accept-language": "en-US,en;q=0.9",
+            "cache-control": "max-age=0",
+            "Access-Control-Allow-Origin": "*",
+            "X-Frame-Options": "SAMEORIGIN",
+            priority: "u=0, i",
+          },
+          method: "GET",
+        }
+      );
+      if (response.status !== 200) {
+        throw new Error("Property not found");
+      }
+      const data = response.data;
+      console.log(data);
+
+      setLatitude(40.8);
+      setLongitude(41.9);
+    } catch (error) {
+      console.error("Error fetching property data:", error);
+    }
   };
 
   const handleDistrictSelectionChange = (
@@ -69,6 +162,10 @@ const Location = (props: Props) => {
   ) => {
     setCity(e.target.value);
     setValue("location.city", e.target.value);
+    setDistrict("");
+    setValue("location.district", "");
+    setNeighborhood("");
+    setValue("location.neighborhood", "");
   };
 
   const handleCountrySelectionChange = (
@@ -89,18 +186,41 @@ const Location = (props: Props) => {
 
   useEffect(() => {
     if (city) {
-      setDistrictOptions(props.districtsObj[city] || []);
+      //  setDistrictOptions(props.districtsObj[city] || []);
+      fetchDistricts(city);
       setDistrict("");
       setNeighborhood("");
     }
-  }, [city, props.districtsObj]);
+  }, [city]);
 
   useEffect(() => {
     if (district) {
-      setNeighborhoodOptions(props.neighborhoodsObj[district] || []);
+      fetchNeighborhoods(district);
       setNeighborhood("");
     }
-  }, [district, props.neighborhoodsObj]);
+  }, [district]);
+
+  async function fetchDistricts(city_slug: string) {
+    try {
+      const response = await axios.get(
+        `/api/location/get-districts/${city_slug}`
+      );
+      setDistrictOptions(response.data);
+    } catch (error) {
+      console.error("Error fetching districts:", error);
+    }
+  }
+
+  async function fetchNeighborhoods(district_slug: string) {
+    try {
+      const response = await axios.get(
+        `/api/location/get-neighborhood/${district_slug}`
+      );
+      setNeighborhoodOptions(response.data);
+    } catch (error) {
+      console.error("Error fetching neighborhoods:", error);
+    }
+  }
 
   // useEffect(() => {
   //   if (city) {
@@ -127,113 +247,64 @@ const Location = (props: Props) => {
         "location.country",
         "location.district",
         "location.neighborhood",
+        "location.latitude",
+        "location.longitude",
       ])
     )
       props.next();
   };
   return (
-    <Card
-      className={cn(
-        "p-2  grid grid-cols-1 md:grid-cols-2 gap-3",
-        props.className
-      )}
-    >
-      {/* <Input
-        {...register("location.city")}
-        errorMessage={errors.location?.city?.message}
-        isInvalid={!!errors.location?.city}
-        label="City"
-        {...(getValues().location && getValues().location.city
-          ? {
-              defaultValue: getValues().location.city,
-            }
-          : {})}
-        // defaultValue={getValues().location.city}
-      />
+    <Card className={cn("p-2  grid grid-cols-1  gap-3", props.className)}>
+      <div className="flex lg:flex-row flex-col gap-4">
+        <div className="w-full flex flex-col gap-y-4">
+          <Select
+            {...register("location.country", {
+              setValueAs: (v: any) => v.toString(),
+            })}
+            errorMessage={errors.location?.country?.message}
+            isInvalid={!!errors.location?.country}
+            label="Ülke"
+            selectionMode="single"
+            name="country"
+            {...(getValues().location && getValues().location.country
+              ? {
+                  defaultSelectedKeys: [
+                    getValues().location.country.toString(),
+                  ],
+                }
+              : {})}
+            value={country}
+            onChange={handleCountrySelectionChange}
+          >
+            {props.countries.map((item) => (
+              <SelectItem key={item.country_name} value={item.country_name}>
+                {item.country_name}
+              </SelectItem>
+            ))}
+          </Select>
 
-      <Input
-        {...register("location.district")}
-        errorMessage={errors.location?.district?.message}
-        isInvalid={!!errors.location?.district}
-        label="District"
-        {...(getValues().location && getValues().location.district
-          ? {
-              defaultValue: getValues().location.district,
-            }
-          : {})}
-
-        // defaultValue={getValues().location.city}
-      />
-
-      <Input
-        {...register("location.neighborhood")}
-        errorMessage={errors.location?.neighborhood?.message}
-        isInvalid={!!errors.location?.neighborhood}
-        label="Neighborhood"
-        {...(getValues().location && getValues().location.neighborhood
-          ? {
-              defaultValue: getValues().location.neighborhood,
-            }
-          : {})}
-        // defaultValue={getValues().location.city}
-      /> */}
-      {/* <Input
-        {...register("location.country")}
-        errorMessage={errors.location?.country?.message}
-        isInvalid={!!errors.location?.country}
-        label="Country"
-        {...(getValues().location && getValues().location.country
-          ? {
-              defaultValue: getValues().location.country,
-            }
-          : {})}
-        // defaultValue={getValues().location.city}
-      /> */}
-
-      <Select
-        {...register("location.country", {
-          setValueAs: (v: any) => v.toString(),
-        })}
-        errorMessage={errors.location?.country?.message}
-        isInvalid={!!errors.location?.country}
-        label="Ülke"
-        selectionMode="single"
-        name="country"
-        {...(getValues().location && getValues().location.country
-          ? { defaultSelectedKeys: [getValues().location.country.toString()] }
-          : {})}
-        value={country}
-        onChange={handleCountrySelectionChange}
-      >
-        {props.countries.map((item) => (
-          <SelectItem key={item.country_name} value={item.country_name}>
-            {item.country_name}
-          </SelectItem>
-        ))}
-      </Select>
-
-      <Select
-        {...register("location.city", {
-          setValueAs: (v: any) => v.toString(),
-        })}
-        errorMessage={errors.location?.city?.message}
-        isInvalid={!!errors.location?.city}
-        label="Şehir"
-        selectionMode="single"
-        name="city"
-        {...(getValues().location && getValues().location.city
-          ? { defaultSelectedKeys: [getValues().location.city.toString()] }
-          : {})}
-        //   disabled={!country}
-        value={city}
-        onChange={handleCitySelectionChange}
-      >
-        {cityOptions.map((c) => (
-          <SelectItem key={c} value={c}>
-            {c}
-          </SelectItem>
-        ))}
-        {/* {cities
+          <Select
+            {...register("location.city", {
+              setValueAs: (v: any) => v.toString(),
+            })}
+            errorMessage={errors.location?.city?.message}
+            isInvalid={!!errors.location?.city}
+            label="Şehir"
+            selectionMode="single"
+            name="city"
+            {...(getValues().location && getValues().location.city
+              ? { defaultSelectedKeys: [getValues().location.city.toString()] }
+              : {})}
+            //   disabled={!country}
+            value={city}
+            onChange={handleCitySelectionChange}
+          >
+            {cityOptions.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
+            ))}
+            {/* {cities
           .filter(
             (item: { country_id: number }) =>
               item.country_id === Number(country)
@@ -243,86 +314,121 @@ const Location = (props: Props) => {
               {item.city_name}
             </SelectItem>
           ))} */}
-      </Select>
+          </Select>
 
-      <Select
-        {...register("location.district", {
-          setValueAs: (v: any) => v.toString(),
-        })}
-        errorMessage={errors.location?.district?.message}
-        isInvalid={!!errors.location?.district}
-        label="İlçe"
-        selectionMode="single"
-        name="district"
-        {...(getValues().location && getValues().location.district
-          ? { defaultSelectedKeys: [getValues().location.district.toString()] }
-          : {})}
-        value={district}
-        onChange={handleDistrictSelectionChange}
-        //   disabled={!city}
-      >
-        {districtOptions.map((c) => (
-          <SelectItem key={c} value={c}>
-            {c}
-          </SelectItem>
-        ))}
-      </Select>
+          <Select
+            {...register("location.district", {
+              setValueAs: (v: any) => v.toString(),
+            })}
+            errorMessage={errors.location?.district?.message}
+            isInvalid={!!errors.location?.district}
+            label="İlçe"
+            selectionMode="single"
+            name="district"
+            {...(getValues().location && getValues().location.district
+              ? {
+                  defaultSelectedKeys: [
+                    getValues().location.district.toString(),
+                  ],
+                }
+              : {})}
+            value={district}
+            onChange={handleDistrictSelectionChange}
+            //   disabled={!city}
+          >
+            {districtOptions.map((c) => (
+              <SelectItem key={c.label} value={c.label}>
+                {c.label}
+              </SelectItem>
+            ))}
+          </Select>
 
-      <Select
-        {...register("location.neighborhood", {
-          setValueAs: (v: any) => v.toString(),
-        })}
-        errorMessage={errors.location?.neighborhood?.message}
-        isInvalid={!!errors.location?.neighborhood}
-        label="Mahalle"
-        selectionMode="single"
-        name="neighborhood"
-        //    disabled={!district}
-        {...(getValues().location && getValues().location.neighborhood
-          ? {
-              defaultSelectedKeys: [
-                getValues().location.neighborhood.toString(),
-              ],
-            }
-          : {})}
-        value={neighborhood}
-        onChange={handleNeighborhoodSelectionChange}
-      >
-        {neighborhoodOptions.map((c) => (
-          <SelectItem key={c} value={c}>
-            {c}
-          </SelectItem>
-        ))}
-      </Select>
+          <Select
+            {...register("location.neighborhood", {
+              setValueAs: (v: any) => v.toString(),
+            })}
+            errorMessage={errors.location?.neighborhood?.message}
+            isInvalid={!!errors.location?.neighborhood}
+            label="Mahalle"
+            selectionMode="single"
+            name="neighborhood"
+            //    disabled={!district}
+            {...(getValues().location && getValues().location.neighborhood
+              ? {
+                  defaultSelectedKeys: [
+                    getValues().location.neighborhood.toString(),
+                  ],
+                }
+              : {})}
+            value={neighborhood}
+            onChange={handleNeighborhoodSelectionChange}
+          >
+            {neighborhoodOptions.map((c) => (
+              <SelectItem key={c.label} value={c.label}>
+                {c.label}
+              </SelectItem>
+            ))}
+          </Select>
 
-      <Input
-        {...register("location.streetAddress")}
-        errorMessage={errors.location?.streetAddress?.message}
-        isInvalid={!!errors.location?.streetAddress}
-        label="Street Address"
-        name="location.streetAddress"
-        {...(getValues().location && getValues().location.streetAddress
-          ? {
-              defaultValue: getValues().location.streetAddress,
-            }
-          : {})}
-        // defaultValue={getValues().location.streetAddress}
-      />
+          <Input
+            {...register("location.streetAddress")}
+            errorMessage={errors.location?.streetAddress?.message}
+            isInvalid={!!errors.location?.streetAddress}
+            label="Adres Satırı"
+            name="location.streetAddress"
+            {...(getValues().location && getValues().location.streetAddress
+              ? {
+                  defaultValue: getValues().location.streetAddress,
+                }
+              : {})}
+            // defaultValue={getValues().location.streetAddress}
+          />
 
-      <Input
-        {...register("location.zip")}
-        errorMessage={errors.location?.zip?.message}
-        isInvalid={!!errors.location?.zip}
-        label="Zip/Postal Code"
-        {...(getValues().location && getValues().location.zip
-          ? {
-              defaultValue: getValues().location.zip,
-            }
-          : {})}
-        // defaultValue={getValues().location.zip}
-      />
-
-      {/* <Input
+          <Input
+            {...register("location.zip")}
+            errorMessage={errors.location?.zip?.message}
+            isInvalid={!!errors.location?.zip}
+            label="Posta Kodu"
+            {...(getValues().location && getValues().location.zip
+              ? {
+                  defaultValue: getValues().location.zip,
+                }
+              : {})}
+            // defaultValue={getValues().location.zip}
+          />
+          {/* <Input
+          {...register("location.latitude", {
+            valueAsNumber: true,
+          })}
+          errorMessage={errors.location?.latitude?.message}
+          isInvalid={!!errors.location?.latitude}
+          label="Enlem"
+          {...(getValues().location && getValues().location.latitude
+            ? {
+                defaultValue: getValues().location?.latitude?.toString(),
+              }
+            : {})}
+          // defaultValue={getValues().location.zip}
+        />
+        <Input
+          {...register("location.longitude", {
+            valueAsNumber: true,
+          })}
+          errorMessage={errors.location?.longitude?.message}
+          isInvalid={!!errors.location?.longitude}
+          label="Boylam"
+          {...(getValues().location && getValues().location.longitude
+            ? {
+                defaultValue: getValues().location.longitude?.toString(),
+              }
+            : {})}
+          // defaultValue={getValues().location.zip}
+        /> */}
+        </div>
+        <div className="w-full flex flex-col gap-y-4">
+          <LocationPicker lat={latitude} lng={longitude} />
+        </div>
+        {/* <Input
         {...register("location.state")}
         errorMessage={errors.location?.state?.message}
         isInvalid={!!errors.location?.state}
@@ -362,7 +468,8 @@ const Location = (props: Props) => {
           : {})}
         // defaultValue={getValues().location.landmark}
       /> */}
-      <div className="flex justify-center col-span-2 gap-3">
+      </div>
+      <div className="flex justify-center col-span-2 gap-3 ">
         <Button
           onClick={props.prev}
           startContent={<ChevronLeftIcon className="w-6" />}

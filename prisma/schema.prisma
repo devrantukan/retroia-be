@@ -5,10 +5,16 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// datasource db {
+//  provider = "sqlite"
+//  url      = env("DATABASE_URL")
+// }
+
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
-}
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+ }
 
 model User {
   id            String          @id
@@ -44,8 +50,8 @@ model Property {
   agent       OfficeWorker @relation(fields: [agentId], references: [id])
   contractId    Int
   contract     PropertyContract    @relation(fields: [contractId], references: [id])
-  videoSource  string
-  3dSource     string
+  videoSource  String
+  threeDSource     String
   
 }
 

@@ -4,6 +4,8 @@ import { unknown, z } from "zod";
 export const AddPropertyFormSchema = z.object({
   name: z.string().min(1, "Please Enter The Name"),
   description: z.string().min(2, "Enter the description"),
+  videoSource: z.string().optional(),
+  threeDSource: z.string().optional(),
   typeId: z
     .string()
     .min(1, "Select the type of your property")
@@ -16,10 +18,7 @@ export const AddPropertyFormSchema = z.object({
     .string()
     .min(1, "Select the contract type of your property")
     .transform((data: unknown) => Number(data)),
-  agentId: z
-    .string()
-    .min(1, "Select the agentId of your property")
-    .transform((data: unknown) => Number(data)),
+  agentId: z.number(),
   statusId: z
     .string()
     .min(1, "Select the status of your property")
@@ -29,6 +28,7 @@ export const AddPropertyFormSchema = z.object({
     .min(1, "Enter the price")
     .regex(new RegExp("^[0-9]+$"), "Please Enter Number")
     .transform((data: unknown) => Number(data)),
+  discountedPrice: z.string().optional(),
   location: z.object({
     streetAddress: z.string().min(1, "Enter the street address"),
     city: z.string().min(1, "Enter the city name"),
@@ -36,14 +36,17 @@ export const AddPropertyFormSchema = z.object({
     neighborhood: z.string().min(1, "Enter the neighborhood name"),
     state: z.string().optional(),
     country: z.string().min(1, "Enter the country name"),
-    zip: z
-      .string()
-      .refine(
-        (data) => validator.isPostalCode(data, "US"),
-        "Enter the zip code"
-      ),
+    // zip: z
+    //   .string()
+    //   .refine(
+    //     (data) => validator.isPostalCode(data, "US"),
+    //     "Enter the zip code"
+    //   ),
+    zip: z.string().optional(),
     region: z.string().optional(),
     landmark: z.string().optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
   }),
   propertyFeature: z.object({
     bedrooms: z
@@ -58,9 +61,9 @@ export const AddPropertyFormSchema = z.object({
     floor: z.number(),
     totalFloor: z.number(),
     area: z.number(),
-    hasSwimmingPool: z.boolean(),
-    hasGardenYard: z.boolean(),
-    hasBalcony: z.boolean(),
+    hasSwimmingPool: z.boolean().default(false),
+    hasGardenYard: z.boolean().default(false),
+    hasBalcony: z.boolean().default(false),
   }),
   propertyDescriptors: z.object({
     alarm: z.boolean().default(false),

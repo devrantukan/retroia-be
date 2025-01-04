@@ -24,7 +24,7 @@ interface Props {
   className?: string;
   agents: OfficeWorker[];
   role: string;
-  descriptorCategories: any[];
+  // descriptorCategories: any[];
   dbDescriptors: any[];
 }
 const Contact = ({
@@ -32,7 +32,7 @@ const Contact = ({
   className,
   agents,
   role,
-  descriptorCategories,
+  // descriptorCategories,
   dbDescriptors,
 }: Props) => {
   const {
@@ -41,40 +41,77 @@ const Contact = ({
     control,
     getValues,
   } = useFormContext<AddPropertyInputType>();
-  const [selectedTypeId, setSelectedTypeId] = React.useState(0);
+
+  const [agentId, setAgentId] = React.useState<number>(0);
+  const [descriptors, setDescriptors] = React.useState<any[]>([]);
+
+  const [descriptorCategories, setDescriptorCategories] = React.useState<any[]>(
+    []
+  );
+
+  // console.log("dc cat", descriptorCategories);
+  useEffect(() => {
+    const values = getValues();
+    if (values.agentId) {
+      setAgentId(values.agentId);
+    }
+  }, [getValues]);
+
+  useEffect(() => {
+    const values = getValues();
+
+    fetchDescriptors(values.typeId);
+  }, [getValues]);
+
+  async function fetchDescriptors(typeId: number) {
+    try {
+      const response = await axios.get(
+        `/api/property/get-property-descriptor-categories/${typeId}`
+      );
+      setDescriptorCategories(response.data);
+    } catch (error) {
+      console.error("Error fetching descriptors:", error);
+    }
+  }
+  const typeId = getValues().typeId;
+  const [selectedTypeId, setSelectedTypeId] = React.useState(typeId);
 
   const [descriptorsGrouped, setDescriptorsGrouped] = React.useState<
     Record<string, any[]>
   >({});
 
-  const typeId = getValues().typeId;
+  console.log(typeId);
 
   const propertyDescriptors = getValues().propertyDescriptors;
 
-  console.log("pd", propertyDescriptors);
+  //console.log("pd", propertyDescriptors);
 
-  const [descriptors, setDescriptors] = React.useState<any[]>([]);
-
-  console.log("dd desc", dbDescriptors);
+  //console.log("dd desc", dbDescriptors);
 
   let descriptorsList: number[] = [];
   dbDescriptors.forEach((key) => {
     descriptorsList.push(key.descriptorId);
   });
 
-  console.log("list", descriptorsList);
+  //console.log("list", descriptorsList);
 
   return (
-    <Card className={cn("", className)}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 p-2 ">
+    <Card className={cn("pb-2", className)}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 p-2">
         {role == "office-workers" && (
           <Input
-            {...register("agentId")}
+            {...register("agentId", {
+              valueAsNumber: true,
+            })}
             errorMessage={errors.agentId?.message}
             isInvalid={!!errors.agentId}
             label="Agent ID"
-            defaultValue={String(getValues("agentId"))}
             className="w-full"
+            {...(getValues().agentId
+              ? {
+                  defaultValue: getValues().agentId.toString(),
+                }
+              : {})}
           />
         )}
         {role == "site-admin" && (
@@ -97,43 +134,47 @@ const Contact = ({
           </Select>
         )}
       </div>
-      {descriptorCategories &&
-        descriptorCategories
-          .filter((descriptorCategory) => descriptorCategory.typeId == typeId)
-          .map((descriptorCategory) => (
-            <div key={descriptorCategory.id} className="p-4">
-              <h2>{descriptorCategory.value}</h2>
-              {descriptorCategory.descriptors &&
-                descriptorCategory.descriptors.map(
-                  (descriptor: {
-                    id: string | number;
-                    value: string;
-                    slug: string;
-                  }) => (
-                    <div key={descriptor.id}>
-                      <Controller
-                        control={control}
-                        name={`propertyDescriptors.${descriptor.slug}` as any}
-                        defaultValue={descriptorsList.includes(
-                          Number(descriptor.id)
-                        )}
-                        render={({ field }) => (
-                          <Checkbox
-                            id={String(descriptor.id)}
-                            {...field}
-                            value={descriptor.slug}
-                            isSelected={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            {descriptor.value}
-                          </Checkbox>
-                        )}
-                      />
-                    </div>
-                  )
-                )}
-            </div>
-          ))}
+      <div className="flex lg:flex-row flex-col basis-4">
+        {descriptorCategories &&
+          descriptorCategories
+            .filter((descriptorCategory) => descriptorCategory.typeId == typeId)
+            .map((descriptorCategory) => (
+              <div key={descriptorCategory.id} className="p-4 ">
+                <h2 className="text-lg font-semibold mb-4">
+                  {descriptorCategory.value}
+                </h2>
+                {descriptorCategory.descriptors &&
+                  descriptorCategory.descriptors.map(
+                    (descriptor: {
+                      id: string | number;
+                      value: string;
+                      slug: string;
+                    }) => (
+                      <div key={descriptor.id}>
+                        <Controller
+                          control={control}
+                          name={`propertyDescriptors.${descriptor.slug}` as any}
+                          defaultValue={descriptorsList.includes(
+                            Number(descriptor.id)
+                          )}
+                          render={({ field }) => (
+                            <Checkbox
+                              id={String(descriptor.id)}
+                              {...field}
+                              value={descriptor.slug}
+                              isSelected={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              {descriptor.value}
+                            </Checkbox>
+                          )}
+                        />
+                      </div>
+                    )
+                  )}
+              </div>
+            ))}
+      </div>
 
       <div className="flex justify-center col-span-3 gap-3">
         <Button

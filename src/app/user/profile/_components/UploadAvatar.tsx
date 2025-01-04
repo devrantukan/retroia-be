@@ -32,9 +32,14 @@ const UploadAvatar = ({ userId }: { userId: string }) => {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Upload Avatar</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1">
+                Upload Avatar
+              </ModalHeader>
               <ModalBody>
-                <FileInput onChange={(e) => setImage((e as any).target.files[0])} />
+                <FileInput
+                  onChange={(e) => setImage((e as any).target.files[0])}
+                  className="h-full"
+                />
                 {image && <Image src={URL.createObjectURL(image)} />}
               </ModalBody>
               <ModalFooter>
