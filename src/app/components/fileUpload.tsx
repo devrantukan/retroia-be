@@ -5,6 +5,7 @@ interface IProps extends React.InputHTMLAttributes<HTMLInputElement> {
   lablText?: string;
   onSelect?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: string;
+  multiple?: boolean;
 }
 
 const FileInput = React.forwardRef<HTMLInputElement, IProps>(
@@ -16,6 +17,7 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
       onChange,
       onSelect,
       error,
+      multiple = false,
 
       ...props
     },
@@ -53,6 +55,8 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
               onChange={(e) => fileChangedHandler(e)}
               {...props}
               type="file"
+              multiple={multiple}
+              accept="image/*"
             />
             Dosya Yükle
           </div>

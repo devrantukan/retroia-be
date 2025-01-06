@@ -27,10 +27,10 @@ const Appbar = ({ children }: Props) => {
       maxWidth={"full"}
     >
       <NavbarContent>
-        <NavbarMenuToggle
+        {/* <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           className="sm:hidden"
-        />
+        /> */}
         <NavbarBrand>
           <Link
             href={"/"}
@@ -51,6 +51,7 @@ const Appbar = ({ children }: Props) => {
         justify="center"
       ></NavbarContent>
       <NavbarContent justify="end">{children}</NavbarContent>
+
       <NavbarMenu></NavbarMenu>
     </Navbar>
   );

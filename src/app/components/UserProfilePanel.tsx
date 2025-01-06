@@ -29,11 +29,13 @@ const UserProfilePanel = ({ user }: Props) => {
         />
       </DropdownTrigger>
       <DropdownMenu aria-label="User Actions" variant="flat">
-        <DropdownItem>
+        <DropdownItem href="/user/profile">
           <Link href="/user/profile">Profil</Link>
         </DropdownItem>
-        <DropdownItem>
-          <Link href="/user/properties">İlan Listesi</Link>
+        <DropdownItem href="/user/properties">
+          <Link className="w-full" href="/user/properties">
+            İlan Listesi
+          </Link>
         </DropdownItem>
         <DropdownItem key="logout" color="danger">
           <LogoutLink>Çıkış</LogoutLink>

@@ -122,34 +122,28 @@ const Location = (props: Props) => {
     setValue("location.neighborhood", e.target.value);
 
     try {
-      const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=izmir%20karaburun%20hasseki&inputtype=textquery&fields=formatted_address%2Cname%2Crating%2Copening_hours%2Cgeometry&key=AIzaSyBf_hX4WicWgAHxKSjeBD29dLXjB0xm3C4`,
-        {
-          headers: {
-            accept:
-              "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "accept-language": "en-US,en;q=0.9",
-            "cache-control": "max-age=0",
-            "Access-Control-Allow-Origin": "*",
-            "X-Frame-Options": "SAMEORIGIN",
-            priority: "u=0, i",
-          },
-          method: "GET",
-        }
-      );
-      if (response.status !== 200) {
-        throw new Error("Property not found");
-      }
-      const data = response.data;
-      console.log(data);
+      // Construct the location string using selected values
+      const locationString = `${neighborhood} ${district} ${city} ${country}`;
 
-      setLatitude(40.8);
-      setLongitude(41.9);
+      const response = await axios.get(`/api/location/get-coordinates`, {
+        params: {
+          location: locationString,
+        },
+      });
+
+      if (response.data.candidates && response.data.candidates[0]) {
+        const location = response.data.candidates[0].geometry.location;
+        setLatitude(location.lat);
+        setLongitude(location.lng);
+
+        // Also update the form values
+        setValue("location.latitude", location.lat);
+        setValue("location.longitude", location.lng);
+      }
     } catch (error) {
-      console.error("Error fetching property data:", error);
+      console.error("Error fetching coordinates:", error);
     }
   };
-
   const handleDistrictSelectionChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {

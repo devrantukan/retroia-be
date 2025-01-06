@@ -26,7 +26,8 @@ const ModalDeletePropertyPage = ({ params }: Props) => {
     try {
       await deleteProperty(Number(params.id));
 
-      router.push("/user/properties");
+      //  router.push("/user/properties");
+      router.refresh();
 
       setIsOpen(false);
     } catch (e) {
@@ -41,14 +42,14 @@ const ModalDeletePropertyPage = ({ params }: Props) => {
   return (
     <Modal isOpen={isOpen} onOpenChange={handleCancel}>
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">Delete Property</ModalHeader>
+        <ModalHeader className="flex flex-col gap-1">İlanı Sil</ModalHeader>
         <ModalBody>
-          <p>Are you sure to delete the property?</p>
+          <p>İlanı silmek istediğinizden emin misiniz?</p>
         </ModalBody>
         <ModalFooter>
-          <Button onClick={handleCancel}>Cancel</Button>
+          <Button onClick={handleCancel}>İptal</Button>
           <Button onClick={handldeDelete} color="danger" variant="light">
-            Delete
+            Sil
           </Button>
         </ModalFooter>
       </ModalContent>

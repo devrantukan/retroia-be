@@ -149,7 +149,7 @@ export default function UserProfileForm({ officeWorker }: any) {
                 <FormLabel>Adınız</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="John"
+                    placeholder="Adınız"
                     {...field}
                     value={name}
                     onChange={(e) => {
@@ -171,7 +171,7 @@ export default function UserProfileForm({ officeWorker }: any) {
                 <FormLabel>Soyadınız</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Doe"
+                    placeholder="Soyadınız"
                     {...field}
                     value={surname}
                     onChange={(e) => {
@@ -211,11 +211,12 @@ export default function UserProfileForm({ officeWorker }: any) {
             control={form.control}
             name="about"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="hidden">
                 <FormLabel>Hakkımda</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Tell us about yourself"
+                    className="hidden"
                     {...field}
                     value={about}
                     onChange={(e) => {

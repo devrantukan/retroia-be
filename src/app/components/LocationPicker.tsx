@@ -97,13 +97,13 @@ export default function LocationPicker({
           <Marker position={center} />
           {selectedLocation && <Marker position={selectedLocation} />}
         </GoogleMap>
-        {selectedLocation && (
+        {/* {selectedLocation && (
           <div className="mt-4">
             <h3 className="text-lg font-semibold">Selected Location:</h3>
             <p>Latitude: {selectedLocation.lat.toFixed(6)}</p>
             <p>Longitude: {selectedLocation.lng.toFixed(6)}</p>
           </div>
-        )}
+        )} */}
         <Input
           {...register("location.latitude", {
             valueAsNumber: true,

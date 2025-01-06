@@ -27,9 +27,9 @@ const signInPanel = async () => {
       <Button color="primary">
         <LoginLink>Sign In</LoginLink>
       </Button>
-      <Button>
+      {/* <Button>
         <RegisterLink>Sign Up</RegisterLink>
-      </Button>
+      </Button> */}
     </div>
   );
 };

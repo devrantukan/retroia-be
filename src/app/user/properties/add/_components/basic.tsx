@@ -103,6 +103,25 @@ const Basic = (props: Props) => {
     setValue("description", description);
   };
 
+  const formatNumber = (value: string) => {
+    // Remove any non-digit characters
+    const number = value.replace(/\D/g, "");
+    // Format with thousands separator
+    return number.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  const handlePriceChange = (value: string) => {
+    const formattedValue = formatNumber(value);
+    setValue("price", parseInt(value.replace(/\D/g, "")) || 0); // Convert to number, default to 0
+    return formattedValue;
+  };
+
+  const handleDiscountedPriceChange = (value: string) => {
+    const formattedValue = formatNumber(value);
+    setValue("discountedPrice", value.replace(/\D/g, "") || "0"); // Convert to string, default to "0"
+    return formattedValue;
+  };
+
   return (
     <Card className={cn("p-2 flex flex-col gap-4", props.className)}>
       <Input
@@ -240,15 +259,23 @@ const Basic = (props: Props) => {
           isInvalid={!!errors.discountedPrice}
           label="İndirimli Fiyat"
           name="discountedPrice"
-          defaultValue={getValues().discountedPrice?.toString()}
+          defaultValue={
+            getValues().discountedPrice
+              ? formatNumber(getValues().discountedPrice ?? "")
+              : ""
+          }
+          onValueChange={handleDiscountedPriceChange}
         />
         <Input
-          {...register("price", { setValueAs: (v: any) => v.toString() })}
+          {...register("price", {
+            setValueAs: (v: any) => v.toString(),
+          })}
           errorMessage={errors.price?.message}
           isInvalid={!!errors.price}
           label="Fiyat"
           name="price"
-          defaultValue={getValues().price?.toString()}
+          defaultValue={formatNumber(getValues().price?.toString() || "")}
+          onValueChange={handlePriceChange}
         />
       </div>
       <div className="flex justify-center col-span-3 gap-3">

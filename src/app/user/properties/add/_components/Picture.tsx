@@ -28,9 +28,11 @@ const Picture = (props: Props) => {
   return (
     <Card className={cn("p-3", props.className)}>
       <FileInput
-        onSelect={(e) =>
-          props.setImages([(e as any).target.files[0], ...props.images])
-        }
+        multiple={true}
+        onSelect={(e) => {
+          const files = Array.from((e.target as HTMLInputElement).files || []);
+          props.setImages([...files, ...props.images]);
+        }}
       />
       <div className="flex gap-3 flex-wrap">
         {props.savedImagesUrl!! &&

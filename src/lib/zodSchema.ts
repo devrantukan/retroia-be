@@ -2,46 +2,40 @@ import validator from "validator";
 import { unknown, z } from "zod";
 
 export const AddPropertyFormSchema = z.object({
-  name: z.string().min(1, "Please Enter The Name"),
-  description: z.string().min(2, "Enter the description"),
+  name: z.string().min(1, "Lütfen isim giriniz"),
+  description: z.string().min(2, "Lütfen açıklama giriniz"),
   videoSource: z.string().optional(),
   threeDSource: z.string().optional(),
   typeId: z
     .string()
-    .min(1, "Select the type of your property")
+    .min(1, "Lütfen mülk tipini seçiniz")
     .transform((data: unknown) => Number(data)),
   subTypeId: z
     .string()
-    .min(1, "Select the subtype of your property")
+    .min(1, "Lütfen alt tipini seçiniz")
     .transform((data: unknown) => Number(data)),
   contractId: z
     .string()
-    .min(1, "Select the contract type of your property")
+    .min(1, "Lütfen sözleşme tipini seçiniz")
     .transform((data: unknown) => Number(data)),
   agentId: z.number(),
   statusId: z
     .string()
-    .min(1, "Select the status of your property")
+    .min(1, "Lütfen durumu seçiniz")
     .transform((data: unknown) => Number(data)),
   price: z
     .string()
-    .min(1, "Enter the price")
-    .regex(new RegExp("^[0-9]+$"), "Please Enter Number")
+    .min(1, "Lütfen fiyat giriniz")
+    .regex(new RegExp("^[0-9]+$"), "Lütfen sadece rakam giriniz")
     .transform((data: unknown) => Number(data)),
   discountedPrice: z.string().optional(),
   location: z.object({
-    streetAddress: z.string().min(1, "Enter the street address"),
-    city: z.string().min(1, "Enter the city name"),
-    district: z.string().min(1, "Enter the district name"),
-    neighborhood: z.string().min(1, "Enter the neighborhood name"),
+    streetAddress: z.string().min(1, "Lütfen sokak adresini giriniz"),
+    city: z.string().min(1, "Lütfen şehir giriniz"),
+    district: z.string().min(1, "Lütfen ilçe giriniz"),
+    neighborhood: z.string().min(1, "Lütfen mahalle giriniz"),
     state: z.string().optional(),
-    country: z.string().min(1, "Enter the country name"),
-    // zip: z
-    //   .string()
-    //   .refine(
-    //     (data) => validator.isPostalCode(data, "US"),
-    //     "Enter the zip code"
-    //   ),
+    country: z.string().min(1, "Lütfen ülke giriniz"),
     zip: z.string().optional(),
     region: z.string().optional(),
     landmark: z.string().optional(),
@@ -51,12 +45,12 @@ export const AddPropertyFormSchema = z.object({
   propertyFeature: z.object({
     bedrooms: z
       .string()
-      .regex(new RegExp("^[0-9]+$"), "Please enter number of the bedrooms")
+      .regex(new RegExp("^[0-9]+$"), "Lütfen yatak odası sayısını giriniz")
       .transform((data: unknown) => Number(data)),
     bathrooms: z
       .string()
-      .min(1, "Select bathroom number of your property")
-      .regex(new RegExp("^[0-9]+$"), "Please enter number of the bathrooms")
+      .min(1, "Lütfen banyo sayısını seçiniz")
+      .regex(new RegExp("^[0-9]+$"), "Lütfen banyo sayısını giriniz")
       .transform((data: unknown) => Number(data)),
     floor: z.number(),
     totalFloor: z.number(),

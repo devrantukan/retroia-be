@@ -158,7 +158,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
     } catch (error) {
       console.error({ error });
     } finally {
-      //   router.push("/user/properties");
+      router.push("/user/properties");
     }
   };
   return (
