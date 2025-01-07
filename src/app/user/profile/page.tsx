@@ -18,25 +18,42 @@ const ProfilePage = async () => {
   const role = accessToken?.roles?.[0]?.key;
 
   const dbUser = await getUserById(user ? user.id : "");
-  console.log("user is:", user);
-  console.log("dbuser is:", dbUser);
-  console.log("act", role);
+  // console.log("user is:", user);
+  // console.log("dbuser is:", dbUser);
+  // console.log("act", role);
 
   const officeWorker = await getUserAsOfficeWorker(user ? user.id : "");
+
+  const propertyCount = await prisma.property.count({
+    where: {
+      agentId: officeWorker?.id,
+    },
+  });
 
   //console.log(officeWorker);
 
   return (
     <div>
-      <PageTitle title="Profilim" linkCaption="Ana sayfaya geri dön" href="/" />
+      <PageTitle title="Profilim" />
       <Card className="m-4 p-4  flex flex-col gap-5">
         <SectionTitle title="Kullanıcı Bilgileri" />
         <div className="flex lg:flex-row flex-col">
           <div className="flex flex-col items-center lg:w-1/3 w-full mb-6">
-            <Avatar
-              className="w-40 h-40 border-1 border-gray-200"
-              src={officeWorker?.avatarUrl ?? "/profile.png"}
-            />
+            <div className="w-[150px] h-[150px] relative">
+              <Avatar
+                className="absolute w-[150px] h-[150px] border-1 border-gray-200 overflow-hidden"
+                src={officeWorker?.avatarUrl ?? "/profile.png"}
+                imgProps={{
+                  className: "w-[150px] h-[200px]",
+                }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "top center",
+                }}
+              />
+            </div>
             <UploadAvatar userId={dbUser?.id!} />
           </div>
 
@@ -52,7 +69,7 @@ const ProfilePage = async () => {
             />
 
             <Attribute title="Kullanıcı Rolü" value={role} />
-            <Attribute title="Emlak sayısı" value={1} />
+            <Attribute title="Emlak sayısı" value={propertyCount} />
           </div>
         </div>
       </Card>

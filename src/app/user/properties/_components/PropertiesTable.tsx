@@ -33,21 +33,28 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
     <div className="flex flex-col items-center gap-4">
       <Table>
         <TableHeader>
-          <TableColumn>BAŞLIK</TableColumn>
-          <TableColumn>FİYAT</TableColumn>
-          <TableColumn>TİP</TableColumn>
-          <TableColumn>DURUM</TableColumn>
-          <TableColumn>İŞLEMLER</TableColumn>
+          <TableColumn className="text-left">BAŞLIK</TableColumn>
+          <TableColumn className="text-right">FİYAT</TableColumn>
+          <TableColumn className="text-center">TİP</TableColumn>
+          <TableColumn className="text-center">DURUM</TableColumn>
+          <TableColumn className="text-right">İŞLEMLER</TableColumn>
         </TableHeader>
         <TableBody>
           {properties.map((item, index) => (
             <TableRow key={index}>
-              <TableCell>{item.name}</TableCell>
-              <TableCell>{item.price}</TableCell>
-              <TableCell>{item.type.value}</TableCell>
-              <TableCell>{item.status.value}</TableCell>
+              <TableCell className="text-left">{item.name}</TableCell>
+              <TableCell className="text-right">
+                {new Intl.NumberFormat("tr-TR", {
+                  style: "currency",
+                  currency: "TRY",
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(item.price)}
+              </TableCell>
+              <TableCell className="text-center">{item.type.value}</TableCell>
+              <TableCell className="text-center">{item.status.value}</TableCell>
               <TableCell>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-end gap-4">
                   <Tooltip content="Ön İzleme">
                     <Link href={`/property/${item.id}`}>
                       <EyeIcon className="w-5 text-slate-500" />

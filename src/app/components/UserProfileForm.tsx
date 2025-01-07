@@ -78,8 +78,14 @@ export default function UserProfileForm({ officeWorker }: any) {
       setName(officeWorker.name);
       form.setValue("surname", officeWorker.surname);
       setSurname(officeWorker.surname);
-      form.setValue("phone", officeWorker.phone);
-      setPhone(officeWorker.phone);
+
+      // Format the initial phone number
+      const formattedPhone = officeWorker.phone
+        ? formatPhoneNumber(officeWorker.phone)
+        : "";
+      form.setValue("phone", formattedPhone);
+      setPhone(formattedPhone);
+
       form.setValue("about", officeWorker.about);
       setAbout(officeWorker.about);
 
@@ -111,6 +117,34 @@ export default function UserProfileForm({ officeWorker }: any) {
   const onEditorStateChange = (about: string) => {
     setAbout(about);
     form.setValue("about", about);
+  };
+
+  const formatPhoneNumber = (value: string) => {
+    // Remove everything except digits
+    const numbers = value.replace(/[^\d]/g, "");
+
+    // Don't format if empty
+    if (numbers.length === 0) return "";
+
+    // Progressive formatting
+    if (numbers.length <= 3) return `+90 ${numbers}`;
+    if (numbers.length <= 6)
+      return `+90 ${numbers.slice(0, 3)} ${numbers.slice(3)}`;
+    if (numbers.length <= 8)
+      return `+90 ${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(
+        6
+      )}`;
+    if (numbers.length <= 10)
+      return `+90 ${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(
+        6,
+        8
+      )} ${numbers.slice(8)}`;
+
+    // Limit to 10 digits
+    return `+90 ${numbers.slice(0, 3)} ${numbers.slice(3, 6)} ${numbers.slice(
+      6,
+      8
+    )} ${numbers.slice(8, 10)}`;
   };
 
   async function onSubmit(data: z.infer<typeof userProfileSchema>) {
@@ -193,13 +227,38 @@ export default function UserProfileForm({ officeWorker }: any) {
                 <FormLabel>Cep Telefonu</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="+1234567890"
+                    placeholder="+90 5__ ___ __ __"
                     {...field}
                     value={phone}
                     onChange={(e) => {
-                      setPhone(e.target.value);
-                      field.onChange(e);
+                      const rawValue = e.target.value;
+                      // If backspace is pressed and value is just "+90 ", clear the field
+                      if (
+                        rawValue === "+90 " ||
+                        rawValue === "+90" ||
+                        rawValue === "+9" ||
+                        rawValue === "+" ||
+                        rawValue === ""
+                      ) {
+                        setPhone("");
+                        field.onChange("");
+                        return;
+                      }
+
+                      // Remove the "+90 " prefix if exists, then format
+                      const numbersPart = rawValue
+                        .replace("+90 ", "")
+                        .replace(/[^\d]/g, "")
+                        .slice(0, 10); // Limit to 10 digits after +90
+
+                      const formatted = numbersPart
+                        ? formatPhoneNumber(numbersPart)
+                        : "";
+
+                      setPhone(formatted);
+                      field.onChange(formatted);
                     }}
+                    maxLength={17} // "+90 XXX XXX XX XX" format length
                   />
                 </FormControl>
                 <FormMessage />

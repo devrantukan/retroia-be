@@ -2,11 +2,17 @@ import validator from "validator";
 import { unknown, z } from "zod";
 
 export const userProfileSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  surname: z.string().min(2, "Surname must be at least 2 characters"),
+  name: z.string().min(2, "İsim en az 2 karakter olmalıdır"),
+  surname: z.string().min(2, "Soyisim en az 2 karakter olmalıdır"),
   avatarUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
   about: z.string().max(500, "About must be 500 characters or less").optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
+  phone: z
+    .string()
+    .regex(
+      /^\+90\s[0-9]{3}\s[0-9]{3}\s[0-9]{2}\s[0-9]{2}$/,
+      "Geçerli bir telefon numarası giriniz (+90 5XX XXX XX XX)"
+    )
+    .optional(),
   //  title: z.string().optional(),
   xAccountId: z.string().optional(),
   facebookAccountId: z.string().optional(),
