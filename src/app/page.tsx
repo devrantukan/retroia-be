@@ -14,7 +14,7 @@ export default async function Home() {
   if (!user) {
     redirect("api/auth/login");
   } else {
-    redirect("/user/profile");
+    redirect("/user/properties");
   }
 
   return (
