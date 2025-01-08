@@ -22,6 +22,7 @@ interface LocationPickerProps {
   country: string;
   city: string;
   district: string;
+  neighborhood: string;
 }
 
 export default function LocationPicker({
@@ -30,6 +31,7 @@ export default function LocationPicker({
   country,
   city,
   district,
+  neighborhood,
 }: LocationPickerProps) {
   const [isInitialPin, setIsInitialPin] = useState(true);
   const [selectedLocation, setSelectedLocation] =
@@ -117,7 +119,10 @@ export default function LocationPicker({
         let zoomLevel = 5;
 
         // Determine location string and zoom level based on available data
-        if (country && city && district) {
+        if (country && city && district && neighborhood) {
+          locationString = `${neighborhood}, ${district}, ${city}, ${country}`;
+          zoomLevel = 16; // Neighborhood level
+        } else if (country && city && district) {
           locationString = `${district}, ${city}, ${country}`;
           zoomLevel = 14; // District level
         } else if (country && city) {
@@ -160,7 +165,7 @@ export default function LocationPicker({
     };
 
     updateMapLocation();
-  }, [country, city, district, map]); // Watch all location changes
+  }, [country, city, district, neighborhood, map]); // Added neighborhood to dependencies
 
   if (loadError) {
     return <div>Error loading maps</div>;

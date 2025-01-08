@@ -482,6 +482,7 @@ const Location = (props: Props) => {
             country={country}
             city={city}
             district={district}
+            neighborhood={neighborhood}
           />
         </div>
         {/* <Input
