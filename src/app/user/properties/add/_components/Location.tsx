@@ -7,8 +7,9 @@ import {
   SelectItem,
   Textarea,
   cn,
+  Spinner,
 } from "@nextui-org/react";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
 import { City, Country, District, Neighborhood } from "@prisma/client";
@@ -65,6 +66,11 @@ const Location = (props: Props) => {
   );
   // console.log("city ops", cityOptions);
   // console.log("city ops", neighborhoodOptions);
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+  const [isLoadingNeighborhoods, setIsLoadingNeighborhoods] = useState(false);
+
+  const [key, setKey] = useState(0);
+
   async function findPlaces() {
     const { Place } = (await google.maps.importLibrary(
       "places"
@@ -118,12 +124,12 @@ const Location = (props: Props) => {
   const handleNeighborhoodSelectionChange = async (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setNeighborhood(e.target.value);
-    setValue("location.neighborhood", e.target.value);
+    const selectedNeighborhood = e.target.value;
+    setNeighborhood(selectedNeighborhood);
+    setValue("location.neighborhood", selectedNeighborhood);
 
     try {
-      // Construct the location string using selected values
-      const locationString = `${neighborhood} ${district} ${city} ${country}`;
+      const locationString = `${selectedNeighborhood} ${district} ${city} Turkey`;
 
       const response = await axios.get(`/api/location/get-coordinates`, {
         params: {
@@ -133,12 +139,17 @@ const Location = (props: Props) => {
 
       if (response.data.candidates && response.data.candidates[0]) {
         const location = response.data.candidates[0].geometry.location;
+
+        // First update state
         setLatitude(location.lat);
         setLongitude(location.lng);
 
-        // Also update the form values
+        // Then update form values
         setValue("location.latitude", location.lat);
         setValue("location.longitude", location.lng);
+
+        // Force re-render of LocationPicker
+        setKey((prev) => prev + 1);
       }
     } catch (error) {
       console.error("Error fetching coordinates:", error);
@@ -149,17 +160,33 @@ const Location = (props: Props) => {
   ) => {
     setDistrict(e.target.value);
     setValue("location.district", e.target.value);
+    setNeighborhood("");
+    setValue("location.neighborhood", "");
   };
 
   const handleCitySelectionChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    setCity(e.target.value);
-    setValue("location.city", e.target.value);
+    const selectedCity = e.target.value;
+
+    // Update city
+    setCity(selectedCity);
+    setValue("location.city", selectedCity);
+
+    // Reset district
     setDistrict("");
     setValue("location.district", "");
+    setDistrictOptions([]);
+
+    // Reset neighborhood
     setNeighborhood("");
     setValue("location.neighborhood", "");
+    setNeighborhoodOptions([]);
+
+    // Fetch new districts for selected city
+    if (selectedCity) {
+      fetchDistricts(selectedCity);
+    }
   };
 
   const handleCountrySelectionChange = (
@@ -167,6 +194,21 @@ const Location = (props: Props) => {
   ) => {
     setCountry(e.target.value);
     setValue("location.country", e.target.value);
+
+    // Reset city
+    setCity("");
+    setValue("location.city", "");
+    setCityOptions([]);
+
+    // Reset district
+    setDistrict("");
+    setValue("location.district", "");
+    setDistrictOptions([]);
+
+    // Reset neighborhood
+    setNeighborhood("");
+    setValue("location.neighborhood", "");
+    setNeighborhoodOptions([]);
   };
 
   useEffect(() => {
@@ -188,13 +230,14 @@ const Location = (props: Props) => {
   }, [city]);
 
   useEffect(() => {
-    if (district) {
-      fetchNeighborhoods(district);
+    if (district && city) {
+      fetchNeighborhoods(city, district);
       setNeighborhood("");
     }
-  }, [district]);
+  }, [district, city]);
 
   async function fetchDistricts(city_slug: string) {
+    setIsLoadingDistricts(true);
     try {
       const response = await axios.get(
         `/api/location/get-districts/${city_slug}`
@@ -202,17 +245,36 @@ const Location = (props: Props) => {
       setDistrictOptions(response.data);
     } catch (error) {
       console.error("Error fetching districts:", error);
+    } finally {
+      setIsLoadingDistricts(false);
     }
   }
 
-  async function fetchNeighborhoods(district_slug: string) {
+  async function fetchNeighborhoods(city_slug: string, district_slug: string) {
+    setIsLoadingNeighborhoods(true);
     try {
+      // Log the URL for debugging
+      console.log(
+        `Fetching: /api/location/get-neighborhood/${city_slug}/${district_slug}`
+      );
+
+      // Ensure both parameters are present and encoded
+      if (!city_slug || !district_slug) {
+        console.error("Missing parameters:", { city_slug, district_slug });
+        return;
+      }
+
       const response = await axios.get(
-        `/api/location/get-neighborhood/${district_slug}`
+        `/api/location/get-neighborhood/${encodeURIComponent(
+          city_slug
+        )}/${encodeURIComponent(district_slug)}`
       );
       setNeighborhoodOptions(response.data);
     } catch (error) {
       console.error("Error fetching neighborhoods:", error);
+      setNeighborhoodOptions([]); // Reset on error
+    } finally {
+      setIsLoadingNeighborhoods(false);
     }
   }
 
@@ -319,6 +381,7 @@ const Location = (props: Props) => {
             label="İlçe"
             selectionMode="single"
             name="district"
+            isLoading={isLoadingDistricts}
             {...(getValues().location && getValues().location.district
               ? {
                   defaultSelectedKeys: [
@@ -346,7 +409,10 @@ const Location = (props: Props) => {
             label="Mahalle"
             selectionMode="single"
             name="neighborhood"
-            //    disabled={!district}
+            isLoading={isLoadingNeighborhoods}
+            startContent={
+              isLoadingNeighborhoods && <Spinner size="sm" color="primary" />
+            }
             {...(getValues().location && getValues().location.neighborhood
               ? {
                   defaultSelectedKeys: [
@@ -369,13 +435,7 @@ const Location = (props: Props) => {
             errorMessage={errors.location?.streetAddress?.message}
             isInvalid={!!errors.location?.streetAddress}
             label="Adres Satırı"
-            name="location.streetAddress"
-            {...(getValues().location && getValues().location.streetAddress
-              ? {
-                  defaultValue: getValues().location.streetAddress,
-                }
-              : {})}
-            // defaultValue={getValues().location.streetAddress}
+            value={getValues().location?.streetAddress || ""}
           />
 
           <Input
@@ -383,12 +443,7 @@ const Location = (props: Props) => {
             errorMessage={errors.location?.zip?.message}
             isInvalid={!!errors.location?.zip}
             label="Posta Kodu"
-            {...(getValues().location && getValues().location.zip
-              ? {
-                  defaultValue: getValues().location.zip,
-                }
-              : {})}
-            // defaultValue={getValues().location.zip}
+            value={getValues().location?.zip || ""}
           />
           {/* <Input
           {...register("location.latitude", {
@@ -420,7 +475,14 @@ const Location = (props: Props) => {
         /> */}
         </div>
         <div className="w-full flex flex-col gap-y-4">
-          <LocationPicker lat={latitude} lng={longitude} />
+          <LocationPicker
+            key={key}
+            lat={latitude}
+            lng={longitude}
+            country={country}
+            city={city}
+            district={district}
+          />
         </div>
         {/* <Input
         {...register("location.state")}

@@ -147,16 +147,12 @@ const Features = (props: Props) => {
               errorMessage={errors.propertyFeature?.area?.message}
               isInvalid={!!errors.propertyFeature?.area}
               label="Toplam alan (m2)"
-              {...(getValues().propertyFeature &&
-              getValues().propertyFeature.area
-                ? {
-                    value: getValues().propertyFeature.area.toString(),
-                  }
-                : {})}
+              type="number"
+              defaultValue={getValues().propertyFeature?.area?.toString()}
             />
           </div>
         </div>
-        <div>
+        <div className="hidden">
           <Controller
             control={control}
             name="propertyFeature.hasSwimmingPool"

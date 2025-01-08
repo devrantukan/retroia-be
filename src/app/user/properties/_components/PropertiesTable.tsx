@@ -10,10 +10,13 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
+  Switch,
 } from "@nextui-org/react";
 import { Prisma, Property } from "@prisma/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { updatePublishingStatus } from "@/app/actions/updatePropertyStatus";
 
 type Props = {
   properties: Prisma.PropertyGetPayload<{
@@ -37,6 +40,7 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
           <TableColumn className="text-right">FİYAT</TableColumn>
           <TableColumn className="text-center">TİP</TableColumn>
           <TableColumn className="text-center">DURUM</TableColumn>
+          <TableColumn className="text-center">YAYIN DURUMU</TableColumn>
           <TableColumn className="text-right">İŞLEMLER</TableColumn>
         </TableHeader>
         <TableBody>
@@ -53,6 +57,20 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
               </TableCell>
               <TableCell className="text-center">{item.type.value}</TableCell>
               <TableCell className="text-center">{item.status.value}</TableCell>
+              <TableCell className="text-center">
+                <Switch
+                  defaultSelected={item.publishingStatus === "PUBLISHED"}
+                  size="sm"
+                  color="success"
+                  onChange={async (e) => {
+                    const newStatus = e.target.checked
+                      ? "PUBLISHED"
+                      : "PENDING";
+                    await updatePublishingStatus(item.id.toString(), newStatus);
+                    router.refresh();
+                  }}
+                />
+              </TableCell>
               <TableCell>
                 <div className="flex items-center justify-end gap-4">
                   <Tooltip content="Ön İzleme">

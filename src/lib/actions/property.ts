@@ -71,6 +71,7 @@ export async function saveProperty(
 
     videoSource: propertyData.videoSource ?? "",
     threeDSource: propertyData.threeDSource ?? "",
+    publishingStatus: "PENDING",
   };
   const result = await prisma.property.create({
     data: {
@@ -134,6 +135,7 @@ export async function editProperty(
       agentId: propertyData.agentId,
       videoSource: propertyData.videoSource,
       threeDSource: propertyData.threeDSource,
+      publishingStatus: "PENDING",
 
       feature: {
         update: {
