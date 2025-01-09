@@ -6,14 +6,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { city: string; district: string } }
 ) {
-  console.log(params);
+  //  console.log(params);
   const neighborhoodData = await prisma.neighborhood.findMany({
     where: {
       district_name: params.district,
       city_name: params.city,
     },
   });
-  console.log(neighborhoodData);
+  // console.log(neighborhoodData);
   const data = neighborhoodData.map((neighborhood) => ({
     neighborhood_id: neighborhood.neighborhood_id,
     label: neighborhood.neighborhood_name,

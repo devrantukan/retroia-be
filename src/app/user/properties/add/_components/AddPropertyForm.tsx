@@ -133,10 +133,24 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
   const { user } = useKindeBrowserClient();
 
   const onSubmit: SubmitHandler<AddPropertyInputType> = async (data) => {
-    console.log({ data });
+    console.log("Form data:", data);
     const imageUrls = await uploadImages(images);
 
     try {
+      // Convert propertyDescriptors to the format expected by the API
+      const descriptors = Object.entries(data.propertyDescriptors || {})
+        .filter(([_, value]) => value === true)
+        .map(([key]) => ({
+          [key]: true,
+        }));
+
+      console.log("Processed descriptors:", descriptors);
+
+      const formDataWithDescriptors = {
+        ...data,
+        propertyDescriptors: Object.assign({}, ...descriptors),
+      };
+
       if (isEdit && props.property) {
         const deletedImageIDs = props.property?.images
           .filter((item) => !savedImagesUrl.includes(item))
@@ -144,19 +158,18 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
 
         await editProperty(
           props.property?.id,
-          data,
+          formDataWithDescriptors,
           imageUrls,
           deletedImageIDs
         );
-
         toast.success("İlan Güncellendi!");
       } else {
-        await saveProperty(data, imageUrls, user?.id!);
-
+        await saveProperty(formDataWithDescriptors, imageUrls, user?.id!);
         toast.success("İlan Eklendi!");
       }
     } catch (error) {
-      console.error({ error });
+      console.error("Error saving property:", error);
+      toast.error("Bir hata oluştu!");
     } finally {
       router.push("/user/properties");
     }

@@ -31,6 +31,7 @@ type Props = {
 };
 
 const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
+  // console.log("currentPage is:", currentPage - 1);
   const router = useRouter();
   return (
     <div className="flex flex-col items-center gap-4">
@@ -96,7 +97,7 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
       </Table>
       <Pagination
         total={totalPages}
-        initialPage={1}
+        initialPage={0}
         page={currentPage}
         onChange={(page) => router.push(`/user/properties?pagenum=${page}`)}
       />

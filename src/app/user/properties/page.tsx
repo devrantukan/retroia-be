@@ -19,26 +19,29 @@ const PropertiesPage = async ({ searchParams }: Props) => {
   const role = accessToken?.roles?.[0]?.key;
 
   const dbUser = await getUserById(user ? user.id : "");
-  console.log("user is:", user);
-  console.log("dbuser is:", dbUser);
-  console.log("act", role);
+  // console.log("user is:", user);
+  // console.log("dbuser is:", dbUser);
+  // console.log("act", role);
 
-  const pagenum = searchParams.pagenum ?? 0;
-  const propertiesPromise = prisma.property.findMany({
+  const pagenum = +(searchParams.pagenum ?? 1) - 1;
+  // console.log("pagenum is:", pagenum);
+
+  // Get total count based on user role
+  const totalPropertiesPromise = await prisma.property.count({
     where: role !== "site-admin" ? { userId: dbUser?.id } : {},
+  });
 
+  const propertiesPromise = await prisma.property.findMany({
+    where: role !== "site-admin" ? { userId: dbUser?.id } : {},
     include: {
       type: true,
       status: true,
       images: true,
     },
-    skip: +pagenum * PAGE_SIZE,
+    skip: Math.max(0, pagenum * PAGE_SIZE),
     take: PAGE_SIZE,
-  });
-
-  const totalPropertiesPromise = prisma.property.count({
-    where: {
-      userId: user?.id,
+    orderBy: {
+      id: "desc",
     },
   });
 
@@ -47,15 +50,16 @@ const PropertiesPage = async ({ searchParams }: Props) => {
     totalPropertiesPromise,
   ]);
 
-  const totalPages = Math.floor(totalProperties / PAGE_SIZE);
+  //  console.log("totalProperties is:", totalProperties);
 
-  console.log({ properties });
-
+  // Calculate total pages, ensuring at least 1 page
+  const totalPages = Math.max(1, Math.ceil(totalProperties / PAGE_SIZE));
+  console.log("totalPages is:", totalPages);
   return (
     <PropertiesTable
       properties={properties}
       totalPages={totalPages}
-      currentPage={+pagenum}
+      currentPage={+pagenum + 1}
     />
   );
 };

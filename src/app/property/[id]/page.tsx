@@ -5,7 +5,7 @@ import { ImagesSlider } from "@/app/components/ImageSlider";
 import PageTitle from "@/app/components/pageTitle";
 import ShowOnMapButton from "@/app/components/ShowOnMapButton";
 import prisma from "@/lib/prisma";
-import { Card } from "@nextui-org/react";
+import { Avatar, Card } from "@nextui-org/react";
 import { Breadcrumbs, BreadcrumbItem } from "@nextui-org/react";
 import { CheckCircle, Spinner } from "@phosphor-icons/react/dist/ssr";
 
@@ -23,6 +23,8 @@ import {
   Button,
   useDisclosure,
 } from "@nextui-org/react";
+import { EnvelopeSimple, Phone, User } from "@phosphor-icons/react";
+import Image from "next/image";
 
 interface PropertyImage {
   id: string;
@@ -49,7 +51,7 @@ const PropertyPage = ({ params }: Props) => {
     thumbnail: "https://picsum.photos/id/1018/250/150",
   };
 
-  console.log(property);
+  //console.log(property);
   const getGalleryImages = (propertyImages: any[]) => {
     let galleryItems = [];
 
@@ -282,9 +284,10 @@ const PropertyPage = ({ params }: Props) => {
               label="Banyo Sayısı"
               value={property.feature?.bathrooms}
             />
+            <Attribute label="Bulunduğu kat" value={property.feature?.floor} />
             <Attribute
-              label="Bulunduğu kat"
-              value={property.feature?.parkingSpots}
+              label="Binadaki kat sayısı"
+              value={property.feature?.totalFloor}
             />
             <Attribute label="Alan" value={property.feature?.area + " m2"} />
 
@@ -295,36 +298,75 @@ const PropertyPage = ({ params }: Props) => {
               label="Mahalle"
               value={property.location?.neighborhood}
             />
-            <div className="mt-6 w-full flex flex-col gap-1">
-              {property.location?.latitude !== 0 &&
-                property.location?.longitude !== 0 && (
-                  <ShowOnMapButton
-                    lat={property.location.latitude}
-                    lng={property.location.longitude}
-                  />
-                )}
+            <div className="flex lg:flex-row flex-col justify-between">
+              <div className="mt-6 w-full flex flex-col gap-1">
+                {property.location?.latitude !== 0 &&
+                  property.location?.longitude !== 0 && (
+                    <ShowOnMapButton
+                      lat={property.location.latitude}
+                      lng={property.location.longitude}
+                    />
+                  )}
 
-              {property.threeDSource && (
-                <div className="mt-6 w-full flex flex-col gap-1">
-                  <Button
-                    onPress={onOpen}
-                    className="w-full bg-blue-950 text-white py-2 rounded-lg 
+                {property.threeDSource && (
+                  <div className="mt-6 w-full flex flex-col gap-1">
+                    <Button
+                      onPress={onOpen}
+                      className="w-full bg-blue-950 text-white py-2 rounded-lg 
                     hover:bg-blue-900 hover:scale-[1.01] transition-all duration-300 
                     flex items-center justify-center gap-2 group"
-                  >
-                    <span>3D Sanal Tur</span>
-                  </Button>
-                </div>
-              )}
+                    >
+                      <span>3D Sanal Tur</span>
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <Title title="Danışman Detayları" className="mt-6" />
-            <Attribute
-              label="Adı Soyadı"
-              value={property.agent?.name + " " + property.agent?.surname}
-            />
-            <Attribute label="E-posta" value={property.agent?.email} />
-            <Attribute label="Cep telefonu" value={property.agent?.phone} />
+            <div className="flex items-start space-x-3 p-2">
+              {/* Agent Avatar */}
+              <div className="flex-shrink-0">
+                {property.agent?.avatarUrl ? (
+                  <Image
+                    src={property.agent.avatarUrl}
+                    alt={property.agent.name}
+                    width={48}
+                    height={48}
+                    className="rounded-full object-cover border border-gray-300"
+                  />
+                ) : (
+                  <User size={48} weight="light" className="text-gray-400" />
+                )}
+              </div>
+
+              {/* Agent Details */}
+              <div className="flex-grow">
+                <h3 className="text-base font-semibold mb-1">
+                  {property.agent?.name} {property.agent?.surname}
+                </h3>
+
+                <div className="space-y-2">
+                  {/* Email with icon */}
+                  <a
+                    href={`mailto:${property.agent?.email}`}
+                    className="flex items-center text-blue-600 hover:text-blue-800"
+                  >
+                    <EnvelopeSimple size={20} weight="light" className="mr-2" />
+                    {property.agent?.email}
+                  </a>
+
+                  {/* Phone with icon */}
+                  <a
+                    href={`tel:${property.agent?.phone}`}
+                    className="flex items-center text-blue-600 hover:text-blue-800"
+                  >
+                    <Phone size={20} weight="light" className="mr-2" />
+                    {property.agent?.phone}
+                  </a>
+                </div>
+              </div>
+            </div>
           </Card>
         </div>
       </div>

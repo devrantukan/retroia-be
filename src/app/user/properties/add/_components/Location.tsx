@@ -39,6 +39,7 @@ const Location = (props: Props) => {
     trigger,
     getValues,
     setValue,
+    watch,
   } = useFormContext<AddPropertyInputType>();
 
   const [city, setCity] = React.useState(getValues().location?.city);
@@ -95,7 +96,7 @@ const Location = (props: Props) => {
     const { places } = await Place.searchByText(request);
 
     if (places.length) {
-      console.log(places);
+      // console.log(places);
 
       const { LatLngBounds } = (await google.maps.importLibrary(
         "core"
@@ -435,7 +436,8 @@ const Location = (props: Props) => {
             errorMessage={errors.location?.streetAddress?.message}
             isInvalid={!!errors.location?.streetAddress}
             label="Adres Satırı"
-            value={getValues().location?.streetAddress || ""}
+            value={watch("location.streetAddress") || ""}
+            onChange={(e) => setValue("location.streetAddress", e.target.value)}
           />
 
           <Input
@@ -443,7 +445,8 @@ const Location = (props: Props) => {
             errorMessage={errors.location?.zip?.message}
             isInvalid={!!errors.location?.zip}
             label="Posta Kodu"
-            value={getValues().location?.zip || ""}
+            value={watch("location.zip") || ""}
+            onChange={(e) => setValue("location.zip", e.target.value)}
           />
           {/* <Input
           {...register("location.latitude", {

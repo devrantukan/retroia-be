@@ -53,6 +53,8 @@ model Property {
   videoSource  String
   threeDSource     String
   publishingStatus    String   @default("PENDING")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   
 }
 

@@ -46,6 +46,7 @@ export default function LocationPicker({
     trigger,
     getValues,
     setValue,
+    watch,
   } = useFormContext<AddPropertyInputType>();
 
   // useEffect(() => {
@@ -121,16 +122,17 @@ export default function LocationPicker({
         // Determine location string and zoom level based on available data
         if (country && city && district && neighborhood) {
           locationString = `${neighborhood}, ${district}, ${city}, ${country}`;
-          zoomLevel = 16; // Neighborhood level
+          // Set less zoom if we have existing location data
+          zoomLevel = latitude && longitude ? 15 : 16;
         } else if (country && city && district) {
           locationString = `${district}, ${city}, ${country}`;
-          zoomLevel = 14; // District level
+          zoomLevel = latitude && longitude ? 13 : 14;
         } else if (country && city) {
           locationString = `${city}, ${country}`;
-          zoomLevel = 11; // City level
+          zoomLevel = latitude && longitude ? 10 : 11;
         } else if (country) {
           locationString = country;
-          zoomLevel = 5; // Country level
+          zoomLevel = 5;
         }
 
         if (locationString) {
@@ -165,7 +167,7 @@ export default function LocationPicker({
     };
 
     updateMapLocation();
-  }, [country, city, district, neighborhood, map]); // Added neighborhood to dependencies
+  }, [country, city, district, neighborhood, map, latitude, longitude]);
 
   if (loadError) {
     return <div>Error loading maps</div>;
@@ -238,17 +240,7 @@ export default function LocationPicker({
 
   const handleUseAddress = () => {
     if (tempAddress) {
-      // Update form values
-      setValue("location.latitude", tempAddress.lat, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      });
-      setValue("location.longitude", tempAddress.lng, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      });
+      // Force update form values
       setValue("location.streetAddress", tempAddress.streetAddress, {
         shouldDirty: true,
         shouldTouch: true,
@@ -259,10 +251,23 @@ export default function LocationPicker({
         shouldTouch: true,
         shouldValidate: true,
       });
+      setValue("location.latitude", tempAddress.lat, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      setValue("location.longitude", tempAddress.lng, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
 
       // Update state values
       setLatitude(tempAddress.lat);
       setLongitude(tempAddress.lng);
+
+      // Force form update
+      trigger(["location.streetAddress", "location.zip"]);
 
       // Clear temporary data
       setGeocodedAddress("");
@@ -278,7 +283,7 @@ export default function LocationPicker({
             <GoogleMap
               mapContainerStyle={{ width: "100%", height: "100%" }}
               center={selectedLocation}
-              zoom={15}
+              zoom={lat && lng ? 18 : 15}
               onLoad={onLoad}
               onClick={handleMapClick}
               options={mapOptions}
@@ -303,11 +308,7 @@ export default function LocationPicker({
             </div>
           )}
         </>
-      ) : (
-        <div className="h-[600px] md:h-[750px] flex items-center justify-center text-center p-4 text-gray-500">
-          Haritayı görmek için lütfen önce mahalle seçiniz
-        </div>
-      )}
+      ) : null}
       <Input
         type="hidden"
         className="hidden"

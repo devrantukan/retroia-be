@@ -18,6 +18,7 @@ import { AddPropertyInputType } from "./AddPropertyForm";
 import { OfficeWorker, PropertyDescriptorCategory } from "@prisma/client";
 
 import axios from "axios";
+import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 
 interface Props {
   prev: () => void;
@@ -40,6 +41,7 @@ const Contact = ({
     formState: { errors },
     control,
     getValues,
+    setValue,
   } = useFormContext<AddPropertyInputType>();
 
   const [agentId, setAgentId] = React.useState<number>(0);
@@ -56,24 +58,31 @@ const Contact = ({
       setAgentId(values.agentId);
     }
   }, [getValues]);
-
+  const typeId = getValues().typeId;
   useEffect(() => {
     const values = getValues();
-
-    fetchDescriptors(values.typeId);
-  }, [getValues]);
+    if (values.typeId) {
+      console.log("Initial typeId:", values.typeId);
+      fetchDescriptors(values.typeId);
+    }
+  }, [typeId, getValues]);
 
   async function fetchDescriptors(typeId: number) {
     try {
+      if (!typeId) return;
+
+      //  console.log("Fetching descriptors for typeId:", typeId);
       const response = await axios.get(
         `/api/property/get-property-descriptor-categories/${typeId}`
       );
+      //  console.log("Fetched descriptors:", response.data);
       setDescriptorCategories(response.data);
     } catch (error) {
       console.error("Error fetching descriptors:", error);
+      console.error("Failed typeId:", typeId);
     }
   }
-  const typeId = getValues().typeId;
+
   const [selectedTypeId, setSelectedTypeId] = React.useState(typeId);
 
   const [descriptorsGrouped, setDescriptorsGrouped] = React.useState<
@@ -86,7 +95,7 @@ const Contact = ({
 
   //console.log("pd", propertyDescriptors);
 
-  //console.log("dd desc", dbDescriptors);
+  console.log("dd desc", dbDescriptors);
 
   let descriptorsList: number[] = [];
   dbDescriptors.forEach((key) => {
@@ -95,23 +104,26 @@ const Contact = ({
 
   //console.log("list", descriptorsList);
 
+  const { user } = useKindeBrowserClient();
+  const currentAgent = agents.find((agent) => agent.userId === user?.id);
+
+  useEffect(() => {
+    if (currentAgent) {
+      setValue("agentId", currentAgent.id);
+    }
+  }, [currentAgent, setValue]);
+
   return (
     <Card className={cn("pb-2", className)}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 p-2">
         {role == "office-workers" && (
           <Input
+            type="hidden"
             {...register("agentId", {
               valueAsNumber: true,
+              value: currentAgent?.id,
             })}
-            errorMessage={errors.agentId?.message}
-            isInvalid={!!errors.agentId}
-            label="Agent ID"
-            className="w-full"
-            {...(getValues().agentId
-              ? {
-                  defaultValue: getValues().agentId.toString(),
-                }
-              : {})}
+            className="hidden"
           />
         )}
         {role == "site-admin" && (
