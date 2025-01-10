@@ -136,7 +136,7 @@ export default function LocationPicker({
         }
 
         if (locationString) {
-          console.log("Updating map with:", locationString);
+          // console.log("Updating map with:", locationString);
 
           const response = await axios.get(`/api/location/get-coordinates`, {
             params: {
@@ -146,7 +146,7 @@ export default function LocationPicker({
 
           if (response.data.candidates && response.data.candidates[0]) {
             const location = response.data.candidates[0].geometry.location;
-            console.log("Received coordinates:", location);
+            // console.log("Received coordinates:", location);
 
             // Update states
             setLatitude(location.lat);

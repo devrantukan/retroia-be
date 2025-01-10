@@ -133,7 +133,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
   const { user } = useKindeBrowserClient();
 
   const onSubmit: SubmitHandler<AddPropertyInputType> = async (data) => {
-    console.log("Form data:", data);
+    //   console.log("Form data:", data);
     const imageUrls = await uploadImages(images);
 
     try {
@@ -144,7 +144,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
           [key]: true,
         }));
 
-      console.log("Processed descriptors:", descriptors);
+      // console.log("Processed descriptors:", descriptors);
 
       const formDataWithDescriptors = {
         ...data,
@@ -171,7 +171,8 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
       console.error("Error saving property:", error);
       toast.error("Bir hata oluştu!");
     } finally {
-      router.push("/user/properties");
+      window.location.assign("/user/properties");
+      //   router.push("/user/properties");
     }
   };
   return (

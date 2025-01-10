@@ -61,7 +61,7 @@ const Location = (props: Props) => {
     getValues().location?.latitude ?? 0
   );
 
-  console.log(latitude);
+  //console.log(latitude);
   const [longitude, setLongitude] = React.useState<number>(
     getValues().location?.longitude ?? 0
   );
@@ -255,9 +255,9 @@ const Location = (props: Props) => {
     setIsLoadingNeighborhoods(true);
     try {
       // Log the URL for debugging
-      console.log(
-        `Fetching: /api/location/get-neighborhood/${city_slug}/${district_slug}`
-      );
+      // console.log(
+      //   `Fetching: /api/location/get-neighborhood/${city_slug}/${district_slug}`
+      // );
 
       // Ensure both parameters are present and encoded
       if (!city_slug || !district_slug) {

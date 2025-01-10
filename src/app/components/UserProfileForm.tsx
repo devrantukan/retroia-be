@@ -120,8 +120,11 @@ export default function UserProfileForm({ officeWorker }: any) {
   };
 
   const formatPhoneNumber = (value: string) => {
+    // Remove existing +90 prefix if exists
+    const withoutPrefix = value.replace(/^\+90\s*/, "");
+
     // Remove everything except digits
-    const numbers = value.replace(/[^\d]/g, "");
+    const numbers = withoutPrefix.replace(/[^\d]/g, "");
 
     // Don't format if empty
     if (numbers.length === 0) return "";

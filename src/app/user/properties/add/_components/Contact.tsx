@@ -62,7 +62,7 @@ const Contact = ({
   useEffect(() => {
     const values = getValues();
     if (values.typeId) {
-      console.log("Initial typeId:", values.typeId);
+      //  console.log("Initial typeId:", values.typeId);
       fetchDescriptors(values.typeId);
     }
   }, [typeId, getValues]);
@@ -89,13 +89,13 @@ const Contact = ({
     Record<string, any[]>
   >({});
 
-  console.log(typeId);
+  // console.log(typeId);
 
   const propertyDescriptors = getValues().propertyDescriptors;
 
   //console.log("pd", propertyDescriptors);
 
-  console.log("dd desc", dbDescriptors);
+  // console.log("dd desc", dbDescriptors);
 
   let descriptorsList: number[] = [];
   dbDescriptors.forEach((key) => {

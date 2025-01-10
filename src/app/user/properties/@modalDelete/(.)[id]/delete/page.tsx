@@ -36,7 +36,8 @@ const ModalDeletePropertyPage = ({ params }: Props) => {
   };
 
   const handleCancel = () => {
-    router.push("/user/properties");
+    //  router.push("/user/properties");
+    window.location.assign("/user/properties");
     setIsOpen(false);
   };
   return (

@@ -23,11 +23,27 @@ export const AddPropertyFormSchema = z.object({
     .string()
     .min(1, "Lütfen durumu seçiniz")
     .transform((data: unknown) => Number(data)),
+
   price: z
     .string()
-    .min(1, "Lütfen fiyat giriniz")
-    .regex(new RegExp("^[0-9]+$"), "Lütfen sadece rakam giriniz")
-    .transform((data: unknown) => Number(data)),
+    .min(1, "Price is required")
+    .refine(
+      (val) => {
+        const cleanValue = val.replace(/\./g, "").replace(/\D/g, "");
+        const number = Number(cleanValue);
+        return !isNaN(number) && number > 0;
+      },
+      { message: "Price must be a positive number" }
+    )
+    .transform((val) => {
+      const cleanValue = val.replace(/\./g, "").replace(/\D/g, "");
+      return Number(cleanValue);
+    }),
+  // price: z
+  //   .string()
+  //   .min(1, "Lütfen fiyat giriniz")
+  //   .regex(new RegExp("^[0-9]+$"), "Lütfen sadece rakam giriniz")
+  //   .transform((data: unknown) => Number(data)),
   discountedPrice: z.string().optional(),
   location: z.object({
     streetAddress: z.string().min(1, "Lütfen sokak adresini giriniz"),
