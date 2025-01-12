@@ -16,7 +16,13 @@ export async function GET(
       status: true,
       feature: true,
       location: true,
-      agent: true,
+      subType: true,
+      agent: {
+        include: {
+          office: true,
+          role: true,
+        },
+      },
       images: true,
       contract: true,
       type: true,

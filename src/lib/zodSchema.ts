@@ -134,3 +134,27 @@ export const AddPropertyFormSchema = z.object({
     peyzaj: z.boolean().default(false),
   }),
 });
+
+export const OfficeFormSchema = z.object({
+  name: z.string().min(2, "İsim en az 2 karakter olmalıdır"),
+  email: z.string().email("Geçerli bir e-posta adresi giriniz"),
+  phone: z.string().min(10, "Geçerli bir telefon numarası giriniz"),
+  fax: z.string().optional(),
+  description: z.string().min(10, "Açıklama en az 10 karakter olmalıdır"),
+  streetAddress: z.string().min(5, "Adres en az 5 karakter olmalıdır"),
+  zip: z.string().min(5, "Posta kodu en az 5 karakter olmalıdır"),
+  countryId: z.string(),
+  cityId: z.string(),
+  districtId: z.string(),
+  neighborhoodId: z.string(),
+  webUrl: z.string().url("Geçerli bir web adresi giriniz").optional(),
+  xAccountId: z.string().optional(),
+  facebookAccountId: z.string().optional(),
+  linkedInAccountId: z.string().optional(),
+  instagramAccountId: z.string().optional(),
+  youtubeAccountId: z.string().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+});
+
+export type OfficeFormData = z.infer<typeof OfficeFormSchema>;

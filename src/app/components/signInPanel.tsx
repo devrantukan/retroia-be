@@ -10,16 +10,20 @@ import UserProfilePanel from "./UserProfilePanel";
 import prisma from "@/lib/prisma";
 
 const signInPanel = async () => {
-  const { isAuthenticated, getUser } = await getKindeServerSession();
+  const { isAuthenticated, getUser } = getKindeServerSession();
   if (await isAuthenticated()) {
     const user = await getUser();
+
+    const { getAccessToken } = await getKindeServerSession();
+    const accessToken: any = await getAccessToken();
+    const role = accessToken?.roles?.[0]?.key;
     const dbUser = await prisma.user.findUnique({
       where: {
         id: user?.id,
       },
     });
 
-    return <>{dbUser!! && <UserProfilePanel user={dbUser} />}</>;
+    return <>{dbUser && <UserProfilePanel user={dbUser} role={role} />}</>;
   }
 
   return (
@@ -33,5 +37,4 @@ const signInPanel = async () => {
     </div>
   );
 };
-
 export default signInPanel;

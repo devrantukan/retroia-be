@@ -15,6 +15,7 @@ export default function BreadCrumb({
     city: string;
     district: string;
     neighborhood: string;
+    subType: string;
   };
   contract: { slug: string; value: string };
   propertyType: { slug: string };
@@ -80,6 +81,9 @@ export default function BreadCrumb({
         >
           {location.neighborhood}
         </Link>
+      </BreadcrumbItem>
+      <BreadcrumbItem key="subType" isCurrent={currentPage === "subType"}>
+        <Link href={"#"}>{location.subType}</Link>
       </BreadcrumbItem>
     </Breadcrumbs>
   );

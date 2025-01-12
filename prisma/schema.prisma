@@ -385,6 +385,7 @@ model ContactRequest {
   lastName  String
   phone     String
   officeId  String
+  message   String
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

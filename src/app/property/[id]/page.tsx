@@ -5,9 +5,16 @@ import { ImagesSlider } from "@/app/components/ImageSlider";
 import PageTitle from "@/app/components/pageTitle";
 import ShowOnMapButton from "@/app/components/ShowOnMapButton";
 import prisma from "@/lib/prisma";
-import { Avatar, Card } from "@nextui-org/react";
+import { Card } from "@nextui-org/react";
 import { Breadcrumbs, BreadcrumbItem } from "@nextui-org/react";
-import { CheckCircle, Spinner } from "@phosphor-icons/react/dist/ssr";
+import {
+  CheckCircle,
+  EnvelopeSimple,
+  Phone,
+  Spinner,
+  User,
+  X,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { notFound } from "next/navigation";
 import React from "react";
@@ -23,8 +30,9 @@ import {
   Button,
   useDisclosure,
 } from "@nextui-org/react";
-import { EnvelopeSimple, Phone, User } from "@phosphor-icons/react";
+
 import Image from "next/image";
+import Link from "next/link";
 
 interface PropertyImage {
   id: string;
@@ -51,12 +59,12 @@ const PropertyPage = ({ params }: Props) => {
     thumbnail: "https://picsum.photos/id/1018/250/150",
   };
 
-  //console.log(property);
+  console.log(property);
   const getGalleryImages = (propertyImages: any[]) => {
     let galleryItems = [];
 
-    // Add video if it exists
-    if (property?.videoSource) {
+    // Add video if it exists and is a valid URL
+    if (property?.videoSource && property.videoSource.startsWith("http")) {
       // Check if it's a YouTube URL
       if (
         property.videoSource.includes("youtube.com") ||
@@ -174,11 +182,6 @@ const PropertyPage = ({ params }: Props) => {
 
   return (
     <div className="w-full">
-      <PageTitle
-        title="İlan ön izleme"
-        href="/user/properties"
-        linkCaption="İlan listesine geri dön"
-      />
       <div className="p-6 pb-0">
         <BreadCrumb
           location={{
@@ -186,18 +189,19 @@ const PropertyPage = ({ params }: Props) => {
             city: property.location?.city || "",
             district: property.location?.district || "",
             neighborhood: property.location?.neighborhood || "",
+            subType: property.subType.value || "",
           }}
           contract={property.contract}
           propertyType={property.type}
         />
         <div>
-          <div className="flex items-center gap-2 justify-between">
-            <div className="lg:w-3/4 w-full">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-2 justify-between">
+            <div className="w-full lg:w-3/4">
               <h2 className="text-2xl font-bold text-primary my-5">
                 {property.name}
               </h2>
             </div>
-            <div className="lg:w-1/4 w-full">
+            <div className="w-full lg:w-1/4 lg:text-right text-left">
               {property.discountedPrice > 0 ? (
                 <>
                   <div className="flex items-center gap-2">
@@ -298,8 +302,8 @@ const PropertyPage = ({ params }: Props) => {
               label="Mahalle"
               value={property.location?.neighborhood}
             />
-            <div className="flex lg:flex-row flex-col justify-between">
-              <div className="mt-6 w-full flex flex-col gap-1">
+            <div className="mt-6 w-full flex flex-row  gap-1 justify-between items-center">
+              <div className="lg:w-1/2">
                 {property.location?.latitude !== 0 &&
                   property.location?.longitude !== 0 && (
                     <ShowOnMapButton
@@ -307,12 +311,13 @@ const PropertyPage = ({ params }: Props) => {
                       lng={property.location.longitude}
                     />
                   )}
-
-                {property.threeDSource && (
-                  <div className="mt-6 w-full flex flex-col gap-1">
+              </div>
+              {property.threeDSource &&
+                property.threeDSource.startsWith("http") && (
+                  <div className="lg:w-1/2">
                     <Button
                       onPress={onOpen}
-                      className="w-full bg-blue-950 text-white py-2 rounded-lg 
+                      className="w-full bg-blue-950 text-white py-2 rounded-xl 
                     hover:bg-blue-900 hover:scale-[1.01] transition-all duration-300 
                     flex items-center justify-center gap-2 group"
                     >
@@ -320,19 +325,18 @@ const PropertyPage = ({ params }: Props) => {
                     </Button>
                   </div>
                 )}
-              </div>
             </div>
 
             <Title title="Danışman Detayları" className="mt-6" />
-            <div className="flex items-start space-x-3 p-2">
+            <div className="flex items-start space-x-3 p-2 justify-between ">
               {/* Agent Avatar */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 w-24 h-24 ">
                 {property.agent?.avatarUrl ? (
                   <Image
                     src={property.agent.avatarUrl}
                     alt={property.agent.name}
-                    width={48}
-                    height={48}
+                    width={64}
+                    height={64}
                     className="rounded-full object-cover border border-gray-300"
                   />
                 ) : (
@@ -342,15 +346,19 @@ const PropertyPage = ({ params }: Props) => {
 
               {/* Agent Details */}
               <div className="flex-grow">
-                <h3 className="text-base font-semibold mb-1">
-                  {property.agent?.name} {property.agent?.surname}
+                <h3 className="text-base font-semibold mb-2  text-right">
+                  <Link
+                    href={`/ofis/${property.agent?.officeId}/${property.agent?.office.slug}/${property.agent?.role.slug}/${property.agent?.id}/${property.agent?.slug}`}
+                  >
+                    {property.agent?.name} {property.agent?.surname}
+                  </Link>
                 </h3>
 
-                <div className="space-y-2">
+                <div className="space-y-1 text-right">
                   {/* Email with icon */}
                   <a
                     href={`mailto:${property.agent?.email}`}
-                    className="flex items-center text-blue-600 hover:text-blue-800"
+                    className="flex items-center text-blue-600 hover:text-blue-800 justify-end text-sm"
                   >
                     <EnvelopeSimple size={20} weight="light" className="mr-2" />
                     {property.agent?.email}
@@ -359,7 +367,7 @@ const PropertyPage = ({ params }: Props) => {
                   {/* Phone with icon */}
                   <a
                     href={`tel:${property.agent?.phone}`}
-                    className="flex items-center text-blue-600 hover:text-blue-800"
+                    className="flex items-center text-blue-600 hover:text-blue-800 justify-end text-sm"
                   >
                     <Phone size={20} weight="light" className="mr-2" />
                     {property.agent?.phone}
@@ -370,32 +378,56 @@ const PropertyPage = ({ params }: Props) => {
           </Card>
         </div>
       </div>
-      <div className="w-full px-4 mb-12">
-        <h3 className="text-xl font-bold mt-4">İlan Özellikleri</h3>
-        <DescriptorsAccordion descriptorsGrouped={descriptorsGrouped} />
-      </div>
-
+      {descriptorsGrouped && Object.keys(descriptorsGrouped).length > 0 && (
+        <div className="w-full px-4 mb-12">
+          <h3 className="text-xl font-bold mt-4">İlan Özellikleri</h3>
+          <DescriptorsAccordion descriptorsGrouped={descriptorsGrouped} />
+        </div>
+      )}
       <Modal
         isOpen={isOpen}
         onClose={onClose}
         size="5xl"
         scrollBehavior="inside"
         hideCloseButton={false}
+        placement="top-center"
+        closeButton={<div className="  mt-2 mr-2" />}
+        motionProps={{
+          variants: {
+            enter: {
+              y: 0,
+              opacity: 1,
+              transition: {
+                duration: 0.3,
+                ease: "easeOut",
+              },
+            },
+            exit: {
+              y: -20,
+              opacity: 0,
+              transition: {
+                duration: 0.2,
+                ease: "easeIn",
+              },
+            },
+          },
+        }}
         classNames={{
-          base: "rounded-b-xl",
-          body: "rounded-b-xl overflow-hidden",
+          base: "mt-0 !rounded-b-xl",
+          wrapper: "mt-0",
+          body: "!rounded-b-xl overflow-hidden ",
         }}
       >
-        <ModalContent>
+        <ModalContent className="lg:h-[90vh] h-auto mt-0">
           {(onClose) => (
             <>
               <ModalHeader className="flex justify-between items-center">
-                3D Virtual Tour
+                3D Sanal Tur
                 <button
                   onClick={onClose}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
-                  <span className="material-icons">close</span>
+                  <X size={24} />
                 </button>
               </ModalHeader>
               <ModalBody className="p-0 rounded-b-xl overflow-hidden">
