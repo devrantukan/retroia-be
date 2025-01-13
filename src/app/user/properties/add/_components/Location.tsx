@@ -130,7 +130,7 @@ const Location = (props: Props) => {
     setValue("location.neighborhood", selectedNeighborhood);
 
     try {
-      const locationString = `${selectedNeighborhood} ${district} ${city} Turkey`;
+      const locationString = `${selectedNeighborhood} ${district} ${city} Türkiye`;
 
       const response = await axios.get(`/api/location/get-coordinates`, {
         params: {
@@ -479,13 +479,13 @@ const Location = (props: Props) => {
         </div>
         <div className="w-full flex flex-col gap-y-4">
           <LocationPicker
-            key={key}
-            lat={latitude}
-            lng={longitude}
-            country={country}
-            city={city}
-            district={district}
-            neighborhood={neighborhood}
+            lat={watch("location.latitude")}
+            lng={watch("location.longitude")}
+            country={watch("location.country")}
+            city={watch("location.city")}
+            district={watch("location.district")}
+            neighborhood={watch("location.neighborhood")}
+            mode="add"
           />
         </div>
         {/* <Input

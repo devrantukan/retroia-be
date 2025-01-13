@@ -54,7 +54,7 @@ const ProfilePage = async () => {
                 }}
               />
             </div>
-            <UploadAvatar userId={dbUser?.id!} />
+            {/* <UploadAvatar userId={dbUser?.id!} /> */}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:w-2/3 w-full">
