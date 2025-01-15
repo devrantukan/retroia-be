@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Stepper from "./Stepper";
 import Basic from "./basic";
 import {
@@ -131,6 +131,19 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
   const [step, setStep] = useState(0);
 
   const { user } = useKindeBrowserClient();
+  const [dbUser, setDbUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const response = await fetch("/api/user");
+      const data = await response.json();
+      setDbUser(data);
+    };
+
+    if (user?.id) {
+      fetchUser();
+    }
+  }, [user?.id]);
 
   const onSubmit: SubmitHandler<AddPropertyInputType> = async (data) => {
     //   console.log("Form data:", data);
@@ -217,6 +230,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
           />
           <Contact
             role={role}
+            user={dbUser}
             agents={props.agents}
             dbDescriptors={
               (props.property?.descriptors as PropertyDescriptor[]) ?? []

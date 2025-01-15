@@ -15,7 +15,7 @@ import {
 import React, { useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
-import { OfficeWorker, PropertyDescriptorCategory } from "@prisma/client";
+import { OfficeWorker, PropertyDescriptorCategory, User } from "@prisma/client";
 
 import axios from "axios";
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
@@ -25,6 +25,7 @@ interface Props {
   className?: string;
   agents: OfficeWorker[];
   role: string;
+  user: User;
   // descriptorCategories: any[];
   dbDescriptors: any[];
 }
@@ -33,6 +34,7 @@ const Contact = ({
   className,
   agents,
   role,
+  user,
   // descriptorCategories,
   dbDescriptors,
 }: Props) => {
@@ -51,19 +53,17 @@ const Contact = ({
     []
   );
 
-  // console.log("dc cat", descriptorCategories);
   useEffect(() => {
     const values = getValues();
     if (values.agentId) {
-      setAgentId(values.agentId);
+      setAgentId(Number(values.agentId));
     }
   }, [getValues]);
   const typeId = getValues().typeId;
   useEffect(() => {
     const values = getValues();
     if (values.typeId) {
-      //  console.log("Initial typeId:", values.typeId);
-      fetchDescriptors(values.typeId);
+      fetchDescriptors(Number(values.typeId));
     }
   }, [typeId, getValues]);
 
@@ -71,11 +71,9 @@ const Contact = ({
     try {
       if (!typeId) return;
 
-      //  console.log("Fetching descriptors for typeId:", typeId);
       const response = await axios.get(
         `/api/property/get-property-descriptor-categories/${typeId}`
       );
-      //  console.log("Fetched descriptors:", response.data);
       setDescriptorCategories(response.data);
     } catch (error) {
       console.error("Error fetching descriptors:", error);
@@ -89,22 +87,15 @@ const Contact = ({
     Record<string, any[]>
   >({});
 
-  // console.log(typeId);
-
   const propertyDescriptors = getValues().propertyDescriptors;
-
-  //console.log("pd", propertyDescriptors);
-
-  // console.log("dd desc", dbDescriptors);
 
   let descriptorsList: number[] = [];
   dbDescriptors.forEach((key) => {
     descriptorsList.push(key.descriptorId);
   });
 
-  //console.log("list", descriptorsList);
-
-  const { user } = useKindeBrowserClient();
+  // const { user } = useKindeBrowserClient();
+  console.log("user is qwdqwe:", user);
   const currentAgent = agents.find((agent) => agent.userId === user?.id);
 
   useEffect(() => {
@@ -121,14 +112,14 @@ const Contact = ({
             type="hidden"
             {...register("agentId", {
               valueAsNumber: true,
-              value: currentAgent?.id,
+              value: Number(currentAgent?.id),
             })}
             className="hidden"
           />
         )}
         {role == "site-admin" && (
           <Select
-            {...register("agentId", { setValueAs: (v: any) => v.toString() })}
+            {...register("agentId", { setValueAs: (v: any) => Number(v) })}
             errorMessage={errors.agentId?.message}
             isInvalid={!!errors.agentId}
             label="Gayrimenkul Danışmanı"
