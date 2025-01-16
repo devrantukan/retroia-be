@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 export async function getOfficeWorkerDetails(userId: string) {
   const officeWorker = await prisma.officeWorker.findUnique({
     where: { userId },
-    select: { name: true, surname: true },
+    select: {
+      name: true,
+      surname: true,
+      avatarUrl: true,
+    },
   });
 
   if (!officeWorker) throw new Error("Office worker not found");

@@ -26,21 +26,33 @@ const UploadAvatar = ({ userId }: { userId: string }) => {
   const router = useRouter();
 
   const handleUpload = async () => {
-    if (image) {
-      setIsSubmitting(true);
-      try {
-        const officeWorker = await getOfficeWorkerDetails(userId);
-        const url = await uploadAvatar(
-          image,
-          officeWorker.name,
-          officeWorker.surname
-        );
-        await updateAvatarInDb(userId, url);
-        router.refresh();
-        onOpenChange();
-      } finally {
-        setIsSubmitting(false);
-      }
+    if (!image) {
+      onOpenChange();
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const officeWorker = await getOfficeWorkerDetails(userId);
+
+      // Get the new avatar URL
+      // const newUrl = await uploadAvatar(
+      //   image,
+      //   officeWorker.name,
+      //   officeWorker.surname
+      // );
+
+      // Only update if the URL has changed
+      // if (newUrl !== officeWorker.avatarUrl) {
+      //   await updateAvatarInDb(userId, newUrl);
+      //   router.refresh();
+      // }
+
+      onOpenChange();
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

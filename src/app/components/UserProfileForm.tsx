@@ -47,6 +47,7 @@ export default function UserProfileForm({ officeWorker }: any) {
   const [youtubeAccountId, setYoutubeAccountId] = useState("");
   const [instagramAccountId, setInstagramAccountId] = useState("");
   const [webUrl, setWebUrl] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -88,6 +89,9 @@ export default function UserProfileForm({ officeWorker }: any) {
 
       form.setValue("about", officeWorker.about);
       setAbout(officeWorker.about);
+
+      form.setValue("avatarUrl", officeWorker.avatarUrl);
+      setAvatarUrl(officeWorker.avatarUrl);
 
       form.setValue("commercialDocumentId", officeWorker.commercialDocumentId);
       setCommercialDocumentId(officeWorker.commercialDocumentId);
