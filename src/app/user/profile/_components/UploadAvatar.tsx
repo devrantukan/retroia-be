@@ -47,7 +47,7 @@ const UploadAvatar = ({ userId }: { userId: string }) => {
   return (
     <div>
       <button onClick={onOpen}>
-        <PencilIcon className="w-6 text-slate-400 hover:text-primary transition-colors" />
+        <PencilIcon className="w-6 text-slate-400 hover:text-primary transition-colors hidden " />
       </button>
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
