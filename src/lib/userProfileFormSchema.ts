@@ -5,7 +5,10 @@ export const userProfileSchema = z.object({
   name: z.string().min(2, "İsim en az 2 karakter olmalıdır"),
   surname: z.string().min(2, "Soyisim en az 2 karakter olmalıdır"),
   avatarUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
-  about: z.string().max(500, "About must be 500 characters or less").optional(),
+  about: z
+    .string()
+    .max(10000, "About must be 500 characters or less")
+    .optional(),
   phone: z
     .string()
     .regex(

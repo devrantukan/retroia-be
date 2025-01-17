@@ -72,6 +72,14 @@ const UserProfilePanel = ({ user, role = null }: Props) => {
             >
               <Link href="/admin/office-worker-reviews">Yorumlar</Link>
             </DropdownItem>
+            <DropdownItem
+              key="admin-property-descriptors"
+              href="/admin/property-descriptors"
+            >
+              <Link href="/admin/property-descriptors">
+                Özellik Tanımlayıcıları
+              </Link>
+            </DropdownItem>
           </>
         ) : null}
         <DropdownItem key="logout" color="danger">

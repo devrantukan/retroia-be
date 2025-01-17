@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Providers } from "./components/providers";
+import { Providers } from "@/app/providers";
 import Appbar from "./components/Appbar";
 import SignInPanel from "./components/signInPanel";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,7 +27,13 @@ export default function RootLayout({
             <SignInPanel />
           </Appbar>
           {children}
-          <ToastContainer />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={true}
+            closeOnClick
+            pauseOnHover
+          />
         </Providers>
       </body>
     </html>
