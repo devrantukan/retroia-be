@@ -184,7 +184,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
       console.error("Error saving property:", error);
       toast.error("Bir hata oluştu!");
     } finally {
-      // window.location.assign("/user/properties");
+      window.location.assign("/user/properties");
       //   router.push("/user/properties");
     }
   };
