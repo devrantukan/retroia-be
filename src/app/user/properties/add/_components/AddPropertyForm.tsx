@@ -145,6 +145,13 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
     }
   }, [user?.id]);
 
+  const handleImages = async (
+    newImages: string[],
+    deletedImages?: number[]
+  ) => {
+    // Your image handling logic here
+  };
+
   const onSubmit: SubmitHandler<AddPropertyInputType> = async (data) => {
     console.log("Form data:", data);
     const imageUrls = await uploadImages(images);
@@ -169,12 +176,17 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
           .filter((item) => !savedImagesUrl.includes(item))
           .map((item) => item.id);
 
-        await editProperty(
-          props.property?.id,
-          formDataWithDescriptors,
-          imageUrls,
-          deletedImageIDs
-        );
+        const formDataWithCoordinates = {
+          ...formDataWithDescriptors,
+          location: {
+            ...formDataWithDescriptors.location,
+            latitude: Number(formDataWithDescriptors.location.latitude),
+            longitude: Number(formDataWithDescriptors.location.longitude),
+          },
+        };
+
+        await editProperty(Number(props.property.id), formDataWithCoordinates);
+        await handleImages(imageUrls, deletedImageIDs);
         toast.success("İlan Güncellendi!");
       } else {
         await saveProperty(formDataWithDescriptors, imageUrls, user?.id!);

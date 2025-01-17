@@ -136,6 +136,8 @@ export const AddPropertyFormSchema = z.object({
   photos: z.array(z.instanceof(File)).optional(),
 });
 
+export type AddPropertyInputType = z.infer<typeof AddPropertyFormSchema>;
+
 export const OfficeFormSchema = z.object({
   name: z.string().min(2, "İsim en az 2 karakter olmalıdır"),
   email: z.string().email("Geçerli bir e-posta adresi giriniz"),

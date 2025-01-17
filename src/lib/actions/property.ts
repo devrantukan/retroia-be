@@ -1,6 +1,6 @@
 "use server";
 
-import { AddPropertyInputType } from "@/app/user/properties/add/_components/AddPropertyForm";
+import { AddPropertyInputType } from "@/lib/zodSchema";
 import prisma from "../prisma";
 import { Property } from "@prisma/client";
 import { redirect } from "next/navigation";
@@ -125,66 +125,64 @@ export async function saveProperty(
 }
 export async function editProperty(
   propertyId: number,
-  propertyData: AddPropertyInputType,
-  newImagesUrls: string[],
-  deletedImageIDs: number[]
+  propertyData: AddPropertyInputType
 ) {
-  //console.log(propertyData.propertyDescriptors);
+  try {
+    console.log("Received property data:", propertyData); // Debug log
 
-  const result = await prisma.property.update({
-    where: {
-      id: propertyId,
-    },
-    data: {
-      name: propertyData.name,
-      price: propertyData.price,
-      discountedPrice: propertyData.discountedPrice
-        ? Number(propertyData.discountedPrice)
-        : undefined,
-      typeId: propertyData.typeId,
-      subTypeId: propertyData.subTypeId,
-      contractId: propertyData.contractId,
-      description: propertyData.description,
-      statusId: propertyData.statusId,
-      agentId: propertyData.agentId,
-      videoSource: propertyData.videoSource,
-      threeDSource: propertyData.threeDSource,
-      publishingStatus: "PENDING",
+    // Ensure we have valid coordinates
+    const latitude = propertyData.location.latitude
+      ? Number(propertyData.location.latitude)
+      : undefined;
+    const longitude = propertyData.location.longitude
+      ? Number(propertyData.location.longitude)
+      : undefined;
 
-      feature: {
-        update: {
-          ...propertyData.propertyFeature,
-        },
-      },
-      location: {
-        update: {
-          ...propertyData.location,
-        },
-      },
-      descriptors: {
-        deleteMany: {},
-        create: (
-          await manageDescriptorData(
-            propertyData.propertyDescriptors,
-            propertyId
-          )
-        ).updateData.map(({ descriptorId }) => ({
-          descriptorId,
-        })),
-      },
-      images: {
-        create: newImagesUrls.map((img) => ({
-          url: img,
-        })),
-        deleteMany: {
-          id: { in: deletedImageIDs },
-        },
-      },
-    },
-  });
+    console.log("Processing coordinates:", { latitude, longitude }); // Debug log
 
-  // console.log({ result });
-  return result;
+    // Update location first
+    const locationUpdate = await prisma.$transaction(async (prisma) => {
+      const location = await prisma.propertyLocation.update({
+        where: { propertyId },
+        data: {
+          country: propertyData.location.country,
+          city: propertyData.location.city,
+          district: propertyData.location.district,
+          neighborhood: propertyData.location.neighborhood,
+          latitude,
+          longitude,
+          streetAddress: propertyData.location.streetAddress || "",
+        },
+      });
+
+      // Update property
+      const property = await prisma.property.update({
+        where: { id: propertyId },
+        data: {
+          name: propertyData.name,
+          description: propertyData.description,
+          price: Number(propertyData.price),
+          discountedPrice: Number(propertyData.discountedPrice) || 0,
+          statusId: Number(propertyData.statusId),
+          typeId: Number(propertyData.typeId),
+          subTypeId: Number(propertyData.subTypeId) || 0,
+          contractId: Number(propertyData.contractId),
+          agentId: Number(propertyData.agentId) || 0,
+        },
+        include: {
+          location: true,
+        },
+      });
+
+      return property;
+    });
+
+    console.log("Update result:", locationUpdate); // Debug log
+    return locationUpdate;
+  } catch (error) {
+    console.error("Property update error:", error);
+    throw error;
+  }
 }
 export async function deleteProperty(id: number) {
   const result = await prisma.property.delete({
@@ -193,4 +191,114 @@ export async function deleteProperty(id: number) {
     },
   });
   return result;
+}
+
+export async function createProperty(data: any) {
+  try {
+    return await prisma.property.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        discountedPrice: data.discountedPrice,
+        type: data.propertyType,
+        statusId: data.statusId,
+        agentId: data.agentId,
+        videoSource: data.videoSource,
+        threeDSource: data.threeDSource,
+        publishingStatus: "PENDING",
+        user: { connect: { id: data.userId } },
+        subType: data.subType,
+        status: { connect: { id: data.statusId } },
+        agent: { connect: { id: data.agentId } },
+        contract: data.contract,
+        feature: {
+          create: {
+            ...data.propertyFeature,
+          },
+        },
+        location: {
+          create: {
+            streetAddress: data.location.streetAddress,
+            city: data.location.city,
+            state: data.location.state,
+            zip: data.location.zip,
+            country: data.location.country,
+            latitude: data.location.latitude,
+            longitude: data.location.longitude,
+            landmark: data.location.landmark || null,
+            district: data.location.district || null,
+            neighborhood: data.location.neighborhood || null,
+            region: data.location.region || null,
+          },
+        },
+        descriptors: {
+          create: data.propertyDescriptors.map((descriptorId: number) => ({
+            descriptorId,
+          })),
+        },
+        images: {
+          create: data.images.map((img: string) => ({
+            url: img,
+          })),
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Create property error:", error);
+    throw error;
+  }
+}
+export async function updateProperty(id: number, data: any) {
+  try {
+    const locationUpdate = await prisma.propertyLocation.upsert({
+      where: {
+        propertyId: Number(id),
+      },
+      create: {
+        propertyId: Number(id),
+        country: data.location.country,
+        city: data.location.city,
+        district: data.location.district,
+        neighborhood: data.location.neighborhood,
+        latitude: Number(data.location.latitude),
+        longitude: Number(data.location.longitude),
+        streetAddress: data.location.address,
+        state: data.location.state || "",
+        zip: data.location.zip || "",
+        landmark: data.location.landmark || null,
+        region: data.location.region || null,
+      },
+      update: {
+        country: data.location.country,
+        city: data.location.city,
+        district: data.location.district,
+        neighborhood: data.location.neighborhood,
+        latitude: Number(data.location.latitude),
+        longitude: Number(data.location.longitude),
+        streetAddress: data.location.address,
+        state: data.location.state || "",
+        zip: data.location.zip || "",
+        landmark: data.location.landmark || null,
+        region: data.location.region || null,
+      },
+    });
+
+    const updatedProperty = await prisma.property.update({
+      where: { id: Number(id) },
+      data: {
+        name: data.name,
+        description: data.description,
+        // ... other property fields
+      },
+      include: {
+        location: true,
+      },
+    });
+
+    return { success: true, data: updatedProperty };
+  } catch (error) {
+    console.error("Update property error:", error);
+    throw error;
+  }
 }
