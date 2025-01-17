@@ -37,34 +37,31 @@ export async function updateUserAvatar(avatarUrl: string, userId: string) {
 
 export async function submitUserProfile(
   data: UserProfileFormData,
-  officeWorkerId: number
+  userId: number
 ) {
-  const result = userProfileSchema.safeParse(data);
+  try {
+    const updatedUser = await prisma.officeWorker.update({
+      where: { id: userId },
+      data: {
+        name: data.name,
+        surname: data.surname,
+        phone: data.phone,
+        about: data.about,
+        avatarUrl: data.avatarUrl,
+        commercialDocumentId: data.commercialDocumentId,
+        companyLegalName: data.companyLegalName,
+        xAccountId: data.xAccountId,
+        facebookAccountId: data.facebookAccountId,
+        linkedInAccountId: data.linkedInAccountId,
+        youtubeAccountId: data.youtubeAccountId,
+        instagramAccountId: data.instagramAccountId,
+        webUrl: data.webUrl,
+      },
+    });
 
-  if (!result.success) {
-    return { success: false, errors: result.error.flatten().fieldErrors };
+    return { success: true, data: updatedUser };
+  } catch (error) {
+    console.error("Profile update error:", error);
+    return { success: false, error: "Profile güncellenirken bir hata oluştu" };
   }
-
-  // Here you would typically save the data to your database
-  console.log("Submitted data:", result.data);
-
-  await prisma.officeWorker.update({
-    where: {
-      id: officeWorkerId,
-    },
-    data: {
-      // Add the fields you want to update
-      name: result.data.name,
-      surname: result.data.surname,
-      phone: result.data.phone,
-      avatarUrl: result.data.avatarUrl,
-      about: result.data.about,
-      xAccountId: result.data.xAccountId,
-      facebookAccountId: result.data.facebookAccountId,
-      linkedInAccountId: result.data.linkedInAccountId,
-      // Add other fields as needed
-    },
-  });
-
-  return { success: true, data: result.data };
 }

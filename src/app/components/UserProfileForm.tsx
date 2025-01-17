@@ -33,6 +33,7 @@ import { toast } from "react-toastify";
 import dynamic from "next/dynamic";
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 import "react-quill/dist/quill.snow.css";
+import { useRouter } from "next/navigation";
 
 export default function UserProfileForm({ officeWorker }: any) {
   const [name, setName] = useState("");
@@ -72,6 +73,8 @@ export default function UserProfileForm({ officeWorker }: any) {
       //   office: "",
     },
   });
+
+  const router = useRouter();
 
   useEffect(() => {
     if (officeWorker) {
@@ -154,28 +157,20 @@ export default function UserProfileForm({ officeWorker }: any) {
     )} ${numbers.slice(8, 10)}`;
   };
 
-  async function onSubmit(data: z.infer<typeof userProfileSchema>) {
-    console.log("formdata", data);
-    setIsSubmitting(true);
+  const onSubmit = async (data: UserProfileFormData) => {
     try {
       const result = await submitUserProfile(data, officeWorker.id);
       if (result.success) {
-        toast.success("Kullanıcı kaydı güncellendi!");
-        console.log("Form submitted successfully", result.data);
-        // You can add a success message or redirect here
+        toast.success("Profil başarıyla güncellendi");
+        router.refresh();
       } else {
-        console.error("Form submission failed", result.errors);
-        toast.error(
-          result.errors ? result.errors.toString() : "An error occurred"
-        );
-        // You can set form errors here if needed
+        toast.error(result.error || "Bir hata oluştu");
       }
     } catch (error) {
-      console.error("An error occurred", error);
-    } finally {
-      setIsSubmitting(false);
+      console.error("Form submission error:", error);
+      toast.error("Profil güncellenirken bir hata oluştu");
     }
-  }
+  };
 
   return (
     <Form {...form}>
