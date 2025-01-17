@@ -41,3 +41,44 @@ export async function GET(
 
   return NextResponse.json(property);
 }
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const formData = await request.formData();
+    const locationData = JSON.parse(formData.get("location") as string);
+
+    const property = await prisma.property.update({
+      where: { id: parseInt(params.id) },
+      data: {
+        // ... other property fields
+        location: {
+          update: {
+            latitude: locationData.latitude
+              ? parseFloat(locationData.latitude)
+              : undefined,
+            longitude: locationData.longitude
+              ? parseFloat(locationData.longitude)
+              : undefined,
+            streetAddress: locationData.streetAddress,
+            zip: locationData.zip,
+            country: locationData.country,
+            city: locationData.city,
+            district: locationData.district,
+            neighborhood: locationData.neighborhood,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(property);
+  } catch (error) {
+    console.error("Error updating property:", error);
+    return NextResponse.json(
+      { error: "Failed to update property" },
+      { status: 500 }
+    );
+  }
+}

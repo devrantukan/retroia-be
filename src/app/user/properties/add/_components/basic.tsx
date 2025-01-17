@@ -174,7 +174,7 @@ const Basic = (props: Props) => {
           {...register("contractId", { setValueAs: (v: any) => v.toString() })}
           errorMessage={errors.contractId?.message}
           isInvalid={!!errors.contractId}
-          label="Kontrat Tipi"
+          label="Hizmet Tipi"
           selectionMode="single"
           name="contractId"
           defaultSelectedKeys={
@@ -238,7 +238,7 @@ const Basic = (props: Props) => {
           {...register("statusId", { setValueAs: (v: any) => v.toString() })}
           errorMessage={errors.statusId?.message}
           isInvalid={!!errors.statusId}
-          label="Durum"
+          label="Kontrat Tipi"
           selectionMode="single"
           name="statusId"
           defaultSelectedKeys={

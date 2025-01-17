@@ -21,7 +21,7 @@ export const AddPropertyFormSchema = z.object({
   agentId: z.number(),
   statusId: z
     .string()
-    .min(1, "Lütfen durumu seçiniz")
+    .min(1, "Lütfen kontrat tipini seçiniz")
     .transform((data: unknown) => Number(data)),
 
   price: z
@@ -133,6 +133,7 @@ export const AddPropertyFormSchema = z.object({
     "park-yesil-alan": z.boolean().default(false),
     peyzaj: z.boolean().default(false),
   }),
+  photos: z.array(z.instanceof(File)).optional(),
 });
 
 export const OfficeFormSchema = z.object({

@@ -47,7 +47,7 @@ export default function LocationPicker({
       lng: lng || 28.97953,
     });
 
-  const { setValue } = useFormContext<AddPropertyInputType>();
+  const { setValue, register } = useFormContext<AddPropertyInputType>();
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY || "",
@@ -66,6 +66,8 @@ export default function LocationPicker({
   } | null>(null);
 
   const [mapOptions, setMapOptions] = useState({});
+  const [confirmedPosition, setConfirmedPosition] =
+    useState<google.maps.LatLngLiteral | null>(null);
 
   useEffect(() => {
     if (isLoaded) {
@@ -77,7 +79,7 @@ export default function LocationPicker({
         zoomControlOptions: {
           position: window.google.maps.ControlPosition.RIGHT_CENTER,
         },
-        mapTypeControl: false,
+        mapTypeControl: true,
         scaleControl: false,
         streetViewControl: false,
         rotateControl: false,
@@ -89,11 +91,21 @@ export default function LocationPicker({
   useEffect(() => {
     const updateMapLocation = async () => {
       try {
+        if (confirmedPosition) {
+          if (map) {
+            map.panTo(confirmedPosition);
+          }
+          return;
+        }
+
         let locationString = "";
         let zoomLevel = 5;
 
+        if (tempAddress) {
+          return;
+        }
+
         if (mode === "edit" && lat && lng) {
-          // If editing and coordinates exist, use them directly
           setSelectedLocation({ lat, lng });
           if (map) {
             map.panTo({ lat, lng });
@@ -102,7 +114,6 @@ export default function LocationPicker({
           return;
         }
 
-        // For add mode or when coordinates don't exist, use address components
         if (country && city && district && neighborhood) {
           locationString = `${neighborhood}, ${district}, ${city}, ${country}`;
           zoomLevel = 16;
@@ -140,7 +151,18 @@ export default function LocationPicker({
     };
 
     updateMapLocation();
-  }, [country, city, district, neighborhood, map, lat, lng, mode]);
+  }, [
+    country,
+    city,
+    district,
+    neighborhood,
+    map,
+    lat,
+    lng,
+    mode,
+    confirmedPosition,
+    tempAddress,
+  ]);
 
   if (loadError) {
     return <div>Harita yüklenirken hata oluştu</div>;
@@ -160,6 +182,20 @@ export default function LocationPicker({
       const newLat = event.latLng.lat();
       const newLng = event.latLng.lng();
       const newPosition = { lat: newLat, lng: newLng };
+
+      setSelectedLocation(newPosition);
+      setConfirmedPosition(newPosition);
+
+      setValue("location.latitude", newLat, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      setValue("location.longitude", newLng, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
 
       try {
         const response = await axios.get(`/api/location/reverse-geocode`, {
@@ -190,8 +226,6 @@ export default function LocationPicker({
           });
 
           setGeocodedAddress(result.formatted_address);
-          setSelectedLocation(newPosition);
-          map.panTo(newPosition);
         }
       } catch (error) {
         console.error("Error in reverse geocoding:", error);
@@ -201,22 +235,26 @@ export default function LocationPicker({
 
   const handleUseAddress = () => {
     if (tempAddress) {
-      setValue("location.streetAddress", tempAddress.streetAddress, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      });
-      setValue("location.zip", tempAddress.zip, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      });
+      const position = { lat: tempAddress.lat, lng: tempAddress.lng };
+      setConfirmedPosition(position);
+      setSelectedLocation(position);
+
       setValue("location.latitude", tempAddress.lat, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: true,
       });
       setValue("location.longitude", tempAddress.lng, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      setValue("location.streetAddress", tempAddress.streetAddress, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      setValue("location.zip", tempAddress.zip, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: true,
@@ -229,6 +267,9 @@ export default function LocationPicker({
 
   return (
     <div className="flex flex-col gap-4">
+      <input type="hidden" {...register("location.latitude")} />
+      <input type="hidden" {...register("location.longitude")} />
+
       <div className="h-[380px] md:h-[300px] w-full">
         <GoogleMap
           mapContainerStyle={{ width: "100%", height: "100%" }}
