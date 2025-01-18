@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updatePublishingStatus } from "@/app/actions/updatePropertyStatus";
+import { toast } from "react-toastify";
 
 type Props = {
   properties: Prisma.PropertyGetPayload<{
@@ -33,6 +34,56 @@ type Props = {
 const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
   // console.log("currentPage is:", currentPage - 1);
   const router = useRouter();
+
+  const handlePublishChange = async (
+    propertyId: number,
+    isPublished: boolean
+  ) => {
+    try {
+      await updatePublishingStatus(
+        propertyId.toString(),
+        isPublished ? "PUBLISHED" : "PENDING"
+      );
+
+      // Revalidate the property page after status change
+      const response = await fetch(process.env.NEXT_PUBLIC_REVALIDATE_URL!, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          path: `/property/${propertyId.toString()}`,
+          token: process.env.NEXT_PUBLIC_REVALIDATE_TOKEN,
+        }),
+      });
+
+      const revalidateHome = await fetch(
+        process.env.NEXT_PUBLIC_REVALIDATE_URL!,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            path: `/`,
+            token: process.env.NEXT_PUBLIC_REVALIDATE_TOKEN,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Revalidation failed");
+      }
+
+      toast.success(
+        isPublished ? "İlan yayınlandı!" : "İlan yayından kaldırıldı!"
+      );
+    } catch (error) {
+      console.error("Error updating property status:", error);
+      toast.error("Bir hata oluştu!");
+    }
+  };
+
   return (
     <div className="flex flex-col items-center gap-4">
       <Table>
@@ -67,7 +118,10 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
                     const newStatus = e.target.checked
                       ? "PUBLISHED"
                       : "PENDING";
-                    await updatePublishingStatus(item.id.toString(), newStatus);
+                    await handlePublishChange(
+                      item.id,
+                      newStatus === "PUBLISHED"
+                    );
                     router.refresh();
                   }}
                 />
