@@ -97,7 +97,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
       description: props.property?.description ?? undefined,
       name: props.property?.name ?? undefined,
       price: props.property?.price ?? undefined,
-      discountedPrice: props.property?.discountedPrice.toString(),
+      discountedPrice: props.property?.discountedPrice?.toString(),
       statusId: props.property?.statusId ?? undefined,
       typeId: props.property?.typeId ?? undefined,
       subTypeId: props.property?.subTypeId ?? undefined,
@@ -105,25 +105,12 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
       agentId: props.property?.agentId ?? undefined,
       videoSource: props.property?.videoSource ?? undefined,
       threeDSource: props.property?.threeDSource ?? undefined,
-      // propertyDescriptors:
-      //   props.property?.descriptors?.reduce((acc, descriptor) => {
-      //     const descriptorDetails = managePropertyDescriptor(
-      //       descriptor.descriptorId
-      //     );
-
-      //     descriptorDetails.then((details) => {
-      //       if (details) {
-      //         acc[details.slug] = true;
-      //       }
-      //     });
-
-      //     return acc;
-      //   }, {} as Record<string, boolean>) ?? undefined,
     },
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [images, setImages] = useState<File[]>([]);
-
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [savedImagesUrl, setSavedImagesUrl] = useState<PropertyImage[]>(
     props.property?.images ?? []
   );
@@ -153,22 +140,15 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
   };
 
   const onSubmit: SubmitHandler<AddPropertyInputType> = async (data) => {
-    console.log("Form data:", data);
-    const imageUrls = await uploadImages(images);
-
+    setIsSubmitting(true);
     try {
-      // Convert propertyDescriptors to the format expected by the API
-      const descriptors = Object.entries(data.propertyDescriptors || {})
-        .filter(([_, value]) => value === true)
-        .map(([key]) => ({
-          [key]: true,
-        }));
-
-      // console.log("Processed descriptors:", descriptors);
-
-      const formDataWithDescriptors = {
+      const formDataWithCoordinates = {
         ...data,
-        propertyDescriptors: Object.assign({}, ...descriptors),
+        location: {
+          ...data.location,
+          latitude: Number(data.location.latitude),
+          longitude: Number(data.location.longitude),
+        },
       };
 
       if (isEdit && props.property) {
@@ -176,30 +156,29 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
           .filter((item) => !savedImagesUrl.includes(item))
           .map((item) => item.id);
 
-        const formDataWithCoordinates = {
-          ...formDataWithDescriptors,
-          location: {
-            ...formDataWithDescriptors.location,
-            latitude: Number(formDataWithDescriptors.location.latitude),
-            longitude: Number(formDataWithDescriptors.location.longitude),
-          },
-        };
+        const uploadedUrls = await uploadImages(images);
 
-        await editProperty(Number(props.property.id), formDataWithCoordinates);
-        await handleImages(imageUrls, deletedImageIDs);
-        toast.success("İlan Güncellendi!");
+        await editProperty(
+          Number(props.property.id),
+          formDataWithCoordinates,
+          uploadedUrls,
+          deletedImageIDs
+        );
+        toast.success("İlan güncellendi!");
       } else {
-        await saveProperty(formDataWithDescriptors, imageUrls, user?.id!);
-        toast.success("İlan Eklendi!");
+        const uploadedUrls = await uploadImages(images);
+        await saveProperty(formDataWithCoordinates, uploadedUrls, dbUser?.id);
+        toast.success("İlan oluşturuldu!");
+        router.push("/user/properties");
       }
     } catch (error) {
-      console.error("Error saving property:", error);
+      console.error("Error submitting property:", error);
       toast.error("Bir hata oluştu!");
     } finally {
-      window.location.assign("/user/properties");
-      //   router.push("/user/properties");
+      setIsSubmitting(false);
     }
   };
+
   return (
     <div>
       <Stepper
@@ -227,13 +206,11 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
             countries={props.countries}
             cities={props.cities}
             citiesObj={props.citiesObj}
-            //districtsObj={props.districtsObj}
-            //districts={props.districts}
-            // neighborhoods={props.neighborhoods}
-            // neighborhoodsObj={props.neighborhoodsObj}
             next={() => setStep((prev) => prev + 1)}
             prev={() => setStep((prev) => prev - 1)}
             className={cn({ hidden: step !== 1 })}
+            isEdit={isEdit}
+            propertyLocation={props.property?.location}
           />
           <Features
             next={() => setStep((prev) => prev + 1)}

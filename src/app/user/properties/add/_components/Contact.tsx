@@ -95,7 +95,7 @@ const Contact = ({
   });
 
   // const { user } = useKindeBrowserClient();
-  console.log("user is qwdqwe:", user);
+  //console.log("user is qwdqwe:", user);
   const currentAgent = agents.find((agent) => agent.userId === user?.id);
 
   useEffect(() => {

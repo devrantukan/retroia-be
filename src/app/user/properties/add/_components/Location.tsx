@@ -9,7 +9,7 @@ import {
   cn,
   Spinner,
 } from "@nextui-org/react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
 import { City, Country, District, Neighborhood } from "@prisma/client";
@@ -17,6 +17,7 @@ import { set } from "zod";
 import LocationMap from "@/app/components/LocationPicker";
 import LocationPicker from "@/app/components/LocationPicker";
 import axios from "axios";
+import { debounce } from "lodash";
 
 interface Props {
   next: () => void;
@@ -29,6 +30,22 @@ interface Props {
   // districtsObj: Record<any, any[]>;
   // neighborhoods: Neighborhood[];
   // neighborhoodsObj: Record<any, any[]>;
+  isEdit: boolean;
+  propertyLocation?: {
+    id?: number;
+    streetAddress?: string;
+    city: string;
+    state?: string;
+    zip?: string;
+    country: string;
+    landmark?: string;
+    district: string;
+    neighborhood: string;
+    region?: string;
+    latitude: number;
+    longitude: number;
+    propertyId?: number;
+  } | null;
 }
 const Location = (props: Props) => {
   // console.log("nb obj:", props.neighborhoodsObj);
@@ -40,22 +57,19 @@ const Location = (props: Props) => {
     getValues,
     setValue,
     watch,
+    formState: { isDirty },
   } = useFormContext<AddPropertyInputType>();
 
-  const [city, setCity] = React.useState(getValues().location?.city);
-  const [country, setCountry] = React.useState(getValues().location?.country);
-  const [district, setDistrict] = React.useState(
-    getValues().location?.district
-  );
-  const [neighborhood, setNeighborhood] = React.useState(
-    getValues().location?.neighborhood
-  );
+  // Initialize states with DB values
+  const [country, setCountry] = useState<string>("");
+  const [city, setCity] = useState<string>("");
+  const [district, setDistrict] = useState<string>("");
+  const [neighborhood, setNeighborhood] = useState<string>("");
 
-  const [cityOptions, setCityOptions] = React.useState<string[]>([]);
-  const [districtOptions, setDistrictOptions] = React.useState<any[]>([]);
-  const [neighborhoodOptions, setNeighborhoodOptions] = React.useState<any[]>(
-    []
-  );
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [districtOptions, setDistrictOptions] = useState<any[]>([]);
+  const [neighborhoodOptions, setNeighborhoodOptions] = useState<any[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const [latitude, setLatitude] = React.useState<number>(
     getValues().location?.latitude ?? 0
@@ -72,144 +86,183 @@ const Location = (props: Props) => {
 
   const [key, setKey] = useState(0);
 
-  async function findPlaces() {
-    const { Place } = (await google.maps.importLibrary(
-      "places"
-    )) as google.maps.PlacesLibrary;
-    const { AdvancedMarkerElement } = (await google.maps.importLibrary(
-      "marker"
-    )) as google.maps.MarkerLibrary;
-    const request = {
-      textQuery: "Tacos in Mountain View",
-      fields: ["displayName", "location", "businessStatus"],
-      includedType: "restaurant",
-      locationBias: { lat: 37.4161493, lng: -122.0812166 },
-      isOpenNow: true,
-      language: "en-US",
-      maxResultCount: 8,
-      minRating: 3.2,
-      region: "us",
-      useStrictTypeFiltering: false,
-    };
-
-    //@ts-ignore
-    const { places } = await Place.searchByText(request);
-
-    if (places.length) {
-      // console.log(places);
-
-      const { LatLngBounds } = (await google.maps.importLibrary(
-        "core"
-      )) as google.maps.CoreLibrary;
-      const bounds = new LatLngBounds();
-
-      // Loop through and get all the results.
-      places.forEach((place) => {
-        console.log(place);
-      });
-    } else {
-      console.log("No results");
+  // Initialize marker position from DB in edit mode
+  const [markerPosition, setMarkerPosition] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(() => {
+    if (props.isEdit) {
+      const values = getValues();
+      const lat = Number(values.location?.latitude);
+      const lng = Number(values.location?.longitude);
+      return !isNaN(lat) && !isNaN(lng) ? { lat, lng } : null;
     }
-  }
+    return null;
+  });
 
+  const [isLoadingCoordinates, setIsLoadingCoordinates] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  // Initialize coordinates for edit mode
   useEffect(() => {
-    const values = getValues();
-    if (values.location?.country) {
-      setCountry(values.location?.country);
-    }
-    if (values.location?.city) {
-      setCity(values.location?.city);
-    }
-  }, [getValues]);
+    if (props.isEdit && initialLoad) {
+      const values = getValues();
+      const lat = Number(values.location?.latitude);
+      const lng = Number(values.location?.longitude);
 
-  const handleNeighborhoodSelectionChange = async (
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setMarkerPosition({ lat, lng });
+        setInitialLoad(false);
+      }
+    }
+  }, [props.isEdit, getValues, initialLoad]);
+
+  // Update map based on selected location
+  const updateMapFromLocation = useCallback(
+    async (locationData: {
+      country?: string;
+      city?: string;
+      district?: string;
+      neighborhood?: string;
+    }) => {
+      const { country, city, district, neighborhood } = locationData;
+
+      if (!country || !city) return;
+
+      setIsLoadingCoordinates(true);
+      try {
+        const locationParts = [
+          neighborhood ? `${neighborhood} Mahallesi` : "",
+          district ? `${district} İlçesi` : "",
+          city ? `${city} İli` : "",
+          country,
+        ].filter(Boolean);
+
+        const locationString = locationParts.join(", ");
+        console.log("Fetching coordinates for:", locationString);
+
+        const response = await axios.get(`/api/location/get-coordinates`, {
+          params: {
+            location: locationString,
+            region: "tr",
+          },
+        });
+
+        // Handle the new response format
+        if (response.data.candidates && response.data.candidates[0]) {
+          const result = response.data.candidates[0];
+          const location = result.geometry.location;
+
+          console.log("Received location data:", result);
+
+          setValue("location.latitude", Number(location.lat), {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          });
+          setValue("location.longitude", Number(location.lng), {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          });
+
+          setMarkerPosition({ lat: location.lat, lng: location.lng });
+
+          // If viewport is available, we can use it to set the map bounds
+          if (result.geometry.viewport) {
+            console.log("Setting viewport:", result.geometry.viewport);
+          }
+
+          console.log("Updated coordinates for:", locationString, {
+            lat: location.lat,
+            lng: location.lng,
+            address: result.formatted_address,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching coordinates:", error);
+      } finally {
+        setIsLoadingCoordinates(false);
+      }
+    },
+    [setValue]
+  );
+
+  // Handle select changes
+  const handleCountryChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selectedCountry = e.target.value;
+    setCountry(selectedCountry);
+    setValue("location.country", selectedCountry);
+
+    // Reset other fields
+    setCity("");
+    setValue("location.city", "");
+    setDistrict("");
+    setValue("location.district", "");
+    setNeighborhood("");
+    setValue("location.neighborhood", "");
+
+    if (!props.isEdit) {
+      await updateMapFromLocation({ country: selectedCountry });
+    }
+  };
+
+  const handleCityChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedCity = e.target.value;
+    setCity(selectedCity);
+    setValue("location.city", selectedCity);
+
+    // Reset dependent fields
+    setDistrict("");
+    setValue("location.district", "");
+    setNeighborhood("");
+    setValue("location.neighborhood", "");
+
+    if (selectedCity) {
+      fetchDistricts(selectedCity);
+      await updateMapFromLocation({
+        country: watch("location.country"),
+        city: selectedCity,
+      });
+    }
+  };
+
+  const handleDistrictChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selectedDistrict = e.target.value;
+    setDistrict(selectedDistrict);
+    setValue("location.district", selectedDistrict);
+
+    // Reset neighborhood
+    setNeighborhood("");
+    setValue("location.neighborhood", "");
+
+    if (city && selectedDistrict) {
+      fetchNeighborhoods(city, selectedDistrict);
+      await updateMapFromLocation({
+        country: watch("location.country"),
+        city: watch("location.city"),
+        district: selectedDistrict,
+      });
+    }
+  };
+
+  const handleNeighborhoodChange = async (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const selectedNeighborhood = e.target.value;
     setNeighborhood(selectedNeighborhood);
     setValue("location.neighborhood", selectedNeighborhood);
 
-    try {
-      const locationString = `${selectedNeighborhood} ${district} ${city} Türkiye`;
-
-      const response = await axios.get(`/api/location/get-coordinates`, {
-        params: {
-          location: locationString,
-        },
-      });
-
-      if (response.data.candidates && response.data.candidates[0]) {
-        const location = response.data.candidates[0].geometry.location;
-
-        // First update state
-        setLatitude(location.lat);
-        setLongitude(location.lng);
-
-        // Then update form values
-        setValue("location.latitude", location.lat);
-        setValue("location.longitude", location.lng);
-
-        // Force re-render of LocationPicker
-        setKey((prev) => prev + 1);
-      }
-    } catch (error) {
-      console.error("Error fetching coordinates:", error);
-    }
-  };
-  const handleDistrictSelectionChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    setDistrict(e.target.value);
-    setValue("location.district", e.target.value);
-    setNeighborhood("");
-    setValue("location.neighborhood", "");
-  };
-
-  const handleCitySelectionChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const selectedCity = e.target.value;
-
-    // Update city
-    setCity(selectedCity);
-    setValue("location.city", selectedCity);
-
-    // Reset district
-    setDistrict("");
-    setValue("location.district", "");
-    setDistrictOptions([]);
-
-    // Reset neighborhood
-    setNeighborhood("");
-    setValue("location.neighborhood", "");
-    setNeighborhoodOptions([]);
-
-    // Fetch new districts for selected city
-    if (selectedCity) {
-      fetchDistricts(selectedCity);
-    }
-  };
-
-  const handleCountrySelectionChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    setCountry(e.target.value);
-    setValue("location.country", e.target.value);
-
-    // Reset city
-    setCity("");
-    setValue("location.city", "");
-    setCityOptions([]);
-
-    // Reset district
-    setDistrict("");
-    setValue("location.district", "");
-    setDistrictOptions([]);
-
-    // Reset neighborhood
-    setNeighborhood("");
-    setValue("location.neighborhood", "");
-    setNeighborhoodOptions([]);
+    await updateMapFromLocation({
+      country: watch("location.country"),
+      city: watch("location.city"),
+      district: watch("location.district"),
+      neighborhood: selectedNeighborhood,
+    });
   };
 
   useEffect(() => {
@@ -310,28 +363,114 @@ const Location = (props: Props) => {
     )
       props.next();
   };
+
+  const handleMapClick = (lat: number, lng: number) => {
+    setValue("location.latitude", lat, { shouldDirty: true });
+    setValue("location.longitude", lng, { shouldDirty: true });
+    setMarkerPosition({ lat, lng });
+  };
+
+  // Initialize edit mode data from propertyLocation
+  useEffect(() => {
+    const initializeEditMode = async () => {
+      if (props.isEdit && props.propertyLocation) {
+        console.log(
+          "Initializing edit mode with propertyLocation:",
+          props.propertyLocation
+        );
+
+        try {
+          // Set country and load cities
+          if (props.propertyLocation.country) {
+            const countryValue = props.propertyLocation.country;
+            setCountry(countryValue);
+            setValue("location.country", countryValue);
+            setCityOptions(props.citiesObj[countryValue] || []);
+          }
+
+          // Set city and load districts
+          if (props.propertyLocation.city) {
+            const cityValue = props.propertyLocation.city;
+            setCity(cityValue);
+            setValue("location.city", cityValue);
+            await fetchDistricts(cityValue);
+          }
+
+          // Set district and load neighborhoods
+          if (props.propertyLocation.city && props.propertyLocation.district) {
+            const districtValue = props.propertyLocation.district;
+            setDistrict(districtValue);
+            setValue("location.district", districtValue);
+            await fetchNeighborhoods(
+              props.propertyLocation.city,
+              districtValue
+            );
+          }
+
+          // Set neighborhood
+          if (props.propertyLocation.neighborhood) {
+            const neighborhoodValue = props.propertyLocation.neighborhood;
+            setNeighborhood(neighborhoodValue);
+            setValue("location.neighborhood", neighborhoodValue);
+          }
+
+          // Set coordinates
+          if (
+            props.propertyLocation.latitude &&
+            props.propertyLocation.longitude
+          ) {
+            const lat = Number(props.propertyLocation.latitude);
+            const lng = Number(props.propertyLocation.longitude);
+
+            if (!isNaN(lat) && !isNaN(lng)) {
+              setMarkerPosition({ lat, lng });
+              setValue("location.latitude", lat);
+              setValue("location.longitude", lng);
+            }
+          }
+        } catch (error) {
+          console.error("Error initializing location data:", error);
+        }
+      }
+    };
+
+    initializeEditMode();
+  }, [props.propertyLocation]);
+
+  // Initialize map position in edit mode
+  useEffect(() => {
+    if (props.isEdit && !markerPosition) {
+      const values = getValues();
+      const lat = Number(values.location?.latitude);
+      const lng = Number(values.location?.longitude);
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setMarkerPosition({ lat, lng });
+        setValue("location.latitude", lat);
+        setValue("location.longitude", lng);
+      }
+    }
+  }, [props.isEdit, markerPosition]);
+
+  // Update cityOptions when country changes
+  useEffect(() => {
+    if (country) {
+      setCityOptions(props.citiesObj[country] || []);
+    }
+  }, [country, props.citiesObj]);
+
   return (
     <Card className={cn("p-2  grid grid-cols-1  gap-3", props.className)}>
       <div className="flex lg:flex-row flex-col gap-4">
         <div className="w-full flex flex-col gap-y-4">
           <Select
-            {...register("location.country", {
-              setValueAs: (v: any) => v.toString(),
-            })}
+            {...register("location.country")}
+            onChange={handleCountryChange}
+            label="Ülke"
             errorMessage={errors.location?.country?.message}
             isInvalid={!!errors.location?.country}
-            label="Ülke"
-            selectionMode="single"
-            name="country"
-            {...(getValues().location && getValues().location.country
-              ? {
-                  defaultSelectedKeys: [
-                    getValues().location.country.toString(),
-                  ],
-                }
-              : {})}
             value={country}
-            onChange={handleCountrySelectionChange}
+            selectedKeys={[watch("location.country") ?? country]}
           >
             {props.countries.map((item) => (
               <SelectItem key={item.country_name} value={item.country_name}>
@@ -341,58 +480,29 @@ const Location = (props: Props) => {
           </Select>
 
           <Select
-            {...register("location.city", {
-              setValueAs: (v: any) => v.toString(),
-            })}
+            {...register("location.city")}
+            onChange={handleCityChange}
+            label="Şehir"
             errorMessage={errors.location?.city?.message}
             isInvalid={!!errors.location?.city}
-            label="Şehir"
-            selectionMode="single"
-            name="city"
-            {...(getValues().location && getValues().location.city
-              ? { defaultSelectedKeys: [getValues().location.city.toString()] }
-              : {})}
-            //   disabled={!country}
             value={city}
-            onChange={handleCitySelectionChange}
+            selectedKeys={[watch("location.city") ?? city]}
           >
             {cityOptions.map((c) => (
               <SelectItem key={c} value={c}>
                 {c}
               </SelectItem>
             ))}
-            {/* {cities
-          .filter(
-            (item: { country_id: number }) =>
-              item.country_id === Number(country)
-          )
-          .map((item) => (
-            <SelectItem key={item.city_id} value={item.city_id}>
-              {item.city_name}
-            </SelectItem>
-          ))} */}
           </Select>
 
           <Select
-            {...register("location.district", {
-              setValueAs: (v: any) => v.toString(),
-            })}
+            {...register("location.district")}
+            onChange={handleDistrictChange}
+            label="İlçe"
             errorMessage={errors.location?.district?.message}
             isInvalid={!!errors.location?.district}
-            label="İlçe"
-            selectionMode="single"
-            name="district"
-            isLoading={isLoadingDistricts}
-            {...(getValues().location && getValues().location.district
-              ? {
-                  defaultSelectedKeys: [
-                    getValues().location.district.toString(),
-                  ],
-                }
-              : {})}
             value={district}
-            onChange={handleDistrictSelectionChange}
-            //   disabled={!city}
+            selectedKeys={[watch("location.district") ?? district]}
           >
             {districtOptions.map((c) => (
               <SelectItem key={c.label} value={c.label}>
@@ -402,27 +512,13 @@ const Location = (props: Props) => {
           </Select>
 
           <Select
-            {...register("location.neighborhood", {
-              setValueAs: (v: any) => v.toString(),
-            })}
+            {...register("location.neighborhood")}
+            onChange={handleNeighborhoodChange}
+            label="Mahalle"
             errorMessage={errors.location?.neighborhood?.message}
             isInvalid={!!errors.location?.neighborhood}
-            label="Mahalle"
-            selectionMode="single"
-            name="neighborhood"
-            isLoading={isLoadingNeighborhoods}
-            startContent={
-              isLoadingNeighborhoods && <Spinner size="sm" color="primary" />
-            }
-            {...(getValues().location && getValues().location.neighborhood
-              ? {
-                  defaultSelectedKeys: [
-                    getValues().location.neighborhood.toString(),
-                  ],
-                }
-              : {})}
             value={neighborhood}
-            onChange={handleNeighborhoodSelectionChange}
+            selectedKeys={[watch("location.neighborhood") ?? neighborhood]}
           >
             {neighborhoodOptions.map((c) => (
               <SelectItem key={c.label} value={c.label}>
@@ -477,15 +573,23 @@ const Location = (props: Props) => {
           // defaultValue={getValues().location.zip}
         /> */}
         </div>
-        <div className="w-full flex flex-col gap-y-4">
+        <div className="w-full flex flex-col gap-y-4 relative">
+          {isLoadingCoordinates && (
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+              <Spinner size="lg" />
+            </div>
+          )}
           <LocationPicker
-            lat={watch("location.latitude")}
-            lng={watch("location.longitude")}
+            lat={Number(watch("location.latitude"))}
+            lng={Number(watch("location.longitude"))}
             country={watch("location.country")}
             city={watch("location.city")}
             district={watch("location.district")}
             neighborhood={watch("location.neighborhood")}
-            mode="add"
+            mode={props.isEdit ? "edit" : "add"}
+            onMapClick={handleMapClick}
+            markerPosition={markerPosition}
+            setMarkerPosition={setMarkerPosition}
           />
         </div>
         {/* <Input
