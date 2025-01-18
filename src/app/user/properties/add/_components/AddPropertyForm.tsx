@@ -35,6 +35,7 @@ import {
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import { redirect, useRouter } from "next/navigation";
 import { ToastContainer, toast } from "react-toastify";
+import { Spinner } from "@nextui-org/react";
 
 const steps = [
   {
@@ -169,7 +170,8 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
         const uploadedUrls = await uploadImages(images);
         await saveProperty(formDataWithCoordinates, uploadedUrls, dbUser?.id);
         toast.success("İlan oluşturuldu!");
-        router.push("/user/properties");
+        window.location.assign("/user/properties");
+        //router.push("/user/properties");
       }
     } catch (error) {
       console.error("Error submitting property:", error);
@@ -180,7 +182,13 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
   };
 
   return (
-    <div>
+    <div className="relative">
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Spinner size="lg" color="white" />
+        </div>
+      )}
+
       <Stepper
         className="m-2"
         items={steps}
