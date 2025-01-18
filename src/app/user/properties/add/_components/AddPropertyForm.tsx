@@ -166,6 +166,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
           deletedImageIDs
         );
         toast.success("İlan güncellendi!");
+        window.location.assign("/user/properties");
       } else {
         const uploadedUrls = await uploadImages(images);
         await saveProperty(formDataWithCoordinates, uploadedUrls, dbUser?.id);
