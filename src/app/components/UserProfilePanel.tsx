@@ -1,5 +1,7 @@
 "use client";
-import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs";
+
+import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
+
 import {
   Dropdown,
   DropdownTrigger,
@@ -88,17 +90,9 @@ const UserProfilePanel = ({ user, role = null }: Props) => {
         <DropdownItem
           key="logout"
           color="danger"
-          className="text-danger p-0 h-full"
+          className="text-danger p-2 h-full"
         >
-          <button
-            onClick={() =>
-              (window.location.href =
-                "/api/auth/logout?post_logout_redirect_url=/")
-            }
-            className="w-full h-full px-2 py-2 inline-flex items-center text-danger cursor-pointer"
-          >
-            Çıkış Yap
-          </button>
+          <LogoutLink>Çıkış Yap</LogoutLink>
         </DropdownItem>
       </DropdownMenu>
     </Dropdown>
