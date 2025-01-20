@@ -90,9 +90,11 @@ const UserProfilePanel = ({ user, role = null }: Props) => {
           color="danger"
           className="text-danger p-0 h-full"
         >
-          <LogoutLink className="w-full h-full px-2 py-2 inline-flex items-center">
-            Çıkış Yap
-          </LogoutLink>
+          <Link href="/api/auth/logout">
+            <LogoutLink className="w-full h-full px-2 py-2 inline-flex items-center">
+              Çıkış Yap
+            </LogoutLink>
+          </Link>
         </DropdownItem>
       </DropdownMenu>
     </Dropdown>
