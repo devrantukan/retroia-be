@@ -6,10 +6,13 @@ import {
   User,
   DropdownMenu,
   DropdownItem,
+  DropdownSection,
+  Avatar,
 } from "@nextui-org/react";
 import { User as PrismaUser } from "@prisma/client";
 import Link from "next/link";
 import React from "react";
+import { useRouter } from "next/navigation";
 
 interface Props {
   user: PrismaUser;
@@ -17,21 +20,21 @@ interface Props {
 }
 
 const UserProfilePanel = ({ user, role = null }: Props) => {
-  console.log(role);
+  const router = useRouter();
+  const isAdmin = role === "site-admin";
+
   return (
-    <Dropdown placement="bottom-start">
+    <Dropdown placement="bottom-end">
       <DropdownTrigger>
-        <User
+        <Avatar
+          isBordered
           as="button"
-          avatarProps={{
-            isBordered: true,
-            src: user.avatarUrl ?? "/profile.png",
-          }}
           className="transition-transform"
-          name={`${user.firstName} ${user.lastName}`}
+          src={user.avatarUrl ?? "/profile.png"}
+          size="sm"
         />
       </DropdownTrigger>
-      <DropdownMenu aria-label="User Actions" variant="flat">
+      <DropdownMenu aria-label="Profile Actions" variant="flat">
         <DropdownItem key="profile" href="/user/profile">
           <Link href="/user/profile">Profil</Link>
         </DropdownItem>
@@ -40,7 +43,7 @@ const UserProfilePanel = ({ user, role = null }: Props) => {
             İlan Listesi
           </Link>
         </DropdownItem>
-        {role === "site-admin" ? (
+        {isAdmin ? (
           <>
             <DropdownItem key="admin-offices">
               <Link href="/admin/offices" className="w-full">
@@ -82,8 +85,10 @@ const UserProfilePanel = ({ user, role = null }: Props) => {
             </DropdownItem>
           </>
         ) : null}
-        <DropdownItem key="logout" color="danger">
-          <LogoutLink>Çıkış</LogoutLink>
+        <DropdownItem key="logout" color="danger" className="text-danger">
+          <LogoutLink className="w-full h-full flex items-center">
+            Çıkış Yap
+          </LogoutLink>
         </DropdownItem>
       </DropdownMenu>
     </Dropdown>
