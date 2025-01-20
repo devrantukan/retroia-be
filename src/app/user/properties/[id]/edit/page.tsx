@@ -103,7 +103,7 @@ const EditPropertyPage = async ({ params }: Props) => {
   console.log("dbuser is:", dbUser);
   console.log("act", role);
 
-  console.log("db properties", property);
+  // console.log("db properties", property);
 
   if (!property) return notFound();
   if (!user || property.userId !== user.id) redirect("/unauthorized");

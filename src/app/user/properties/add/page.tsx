@@ -1,4 +1,4 @@
-import React from "react";
+//import React from "react";
 import AddPropertyForm from "./_components/AddPropertyForm";
 import prisma from "@/lib/prisma";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
@@ -13,7 +13,7 @@ const AddPropertyPage = async () => {
     agents,
     countries,
     cities,
-    districts,
+    // districts,
     // neighborhoods,
     // descriptorCategories,
   ] = await Promise.all([
@@ -26,9 +26,9 @@ const AddPropertyPage = async () => {
     prisma.city.findMany(),
     // prisma.district.findMany(),
     // prisma.neighborhood.findMany(),
-    prisma.propertyDescriptorCategory.findMany({
-      include: { descriptors: true },
-    }),
+    // prisma.propertyDescriptorCategory.findMany({
+    //   include: { descriptors: true },
+    // }),
   ]);
 
   let citiesObj: Record<string, string[]> = {};
