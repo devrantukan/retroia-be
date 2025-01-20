@@ -90,13 +90,15 @@ const UserProfilePanel = ({ user, role = null }: Props) => {
           color="danger"
           className="text-danger p-0 h-full"
         >
-          <div className="w-full h-full">
-            <LogoutLink postLogoutRedirectURL="/">
-              <div className="w-full h-full px-2 py-2 inline-flex items-center text-danger cursor-pointer">
-                Çıkış Yap
-              </div>
-            </LogoutLink>
-          </div>
+          <button
+            onClick={() =>
+              (window.location.href =
+                "/api/auth/logout?post_logout_redirect_url=/")
+            }
+            className="w-full h-full px-2 py-2 inline-flex items-center text-danger cursor-pointer"
+          >
+            Çıkış Yap
+          </button>
         </DropdownItem>
       </DropdownMenu>
     </Dropdown>
