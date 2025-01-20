@@ -4,6 +4,8 @@ import { AddPropertyInputType } from "@/app/user/properties/add/_components/AddP
 import prisma from "../prisma";
 import { Property } from "@prisma/client";
 import { redirect } from "next/navigation";
+import { writeFile } from "fs/promises";
+import path from "path";
 
 export async function managePropertyDescriptor(descriptorId: number) {
   const descriptorDetails = await prisma.propertyDescriptor.findUnique({
@@ -212,4 +214,31 @@ export async function deleteProperty(id: number) {
     },
   });
   return result;
+}
+
+export async function uploadImages(images: File[]) {
+  if (typeof window === "undefined") {
+    // Server-side: Skip image processing
+    return [];
+  }
+
+  try {
+    const uploadPromises = images.map(async (image) => {
+      const bytes = await image.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // Create unique filename
+      const filename = `${Date.now()}-${image.name}`;
+      const filepath = path.join(process.cwd(), "public/uploads", filename);
+
+      // Save file
+      await writeFile(filepath, buffer);
+      return `/uploads/${filename}`;
+    });
+
+    return await Promise.all(uploadPromises);
+  } catch (error) {
+    console.error("Error uploading images:", error);
+    throw error;
+  }
 }

@@ -153,11 +153,11 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
       };
 
       if (isEdit && props.property) {
+        const uploadedUrls =
+          images.length > 0 ? await uploadImages(images) : [];
         const deletedImageIDs = props.property?.images
           .filter((item) => !savedImagesUrl.includes(item))
           .map((item) => item.id);
-
-        const uploadedUrls = await uploadImages(images);
 
         await editProperty(
           Number(props.property.id),
@@ -168,7 +168,8 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
         toast.success("İlan güncellendi!");
         window.location.assign("/user/properties");
       } else {
-        const uploadedUrls = await uploadImages(images);
+        const uploadedUrls =
+          images.length > 0 ? await uploadImages(images) : [];
         await saveProperty(formDataWithCoordinates, uploadedUrls, dbUser?.id);
         toast.success("İlan oluşturuldu!");
         window.location.assign("/user/properties");
