@@ -435,7 +435,7 @@ const Location = (props: Props) => {
     };
 
     initializeEditMode();
-  }, [props.propertyLocation]);
+  }, [props.propertyLocation, props.citiesObj, props.isEdit, setValue]);
 
   // Initialize map position in edit mode
   useEffect(() => {
@@ -450,7 +450,7 @@ const Location = (props: Props) => {
         setValue("location.longitude", lng);
       }
     }
-  }, [props.isEdit, markerPosition]);
+  }, [props.isEdit, markerPosition, getValues, setValue]);
 
   // Update cityOptions when country changes
   useEffect(() => {

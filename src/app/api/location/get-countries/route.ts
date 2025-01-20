@@ -1,34 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET(request: NextRequest, response: NextResponse) {
-  const projectLocations = await prisma.propertyLocation.findMany({
-    distinct: ["country"],
-  });
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
-  let countries: string[] = [];
+export async function GET(request: NextRequest) {
+  try {
+    const countries = await prisma.country.findMany({
+      orderBy: {
+        country_name: "asc",
+      },
+    });
 
-  projectLocations.forEach((location) => {
-    countries.push(location.country);
-  });
-
-  const data: any[] = [];
-  await Promise.all(
-    countries.map(async (country) => {
-      const countryData = await prisma.country.findFirst({
-        where: { country_name: country },
-      });
-
-      if (countryData) {
-        data.push({
-          country_id: countryData.country_id,
-          country_name: countryData.country_name,
-          country_slug: countryData.slug,
-        });
-      }
-    })
-  );
-
-  return NextResponse.json(data);
+    return new Response(JSON.stringify(countries), {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching countries:", error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
 }

@@ -1,26 +1,22 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+
+export const dynamic = "force-dynamic";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBf_hX4WicWgAHxKSjeBD29dLXjB0xm3C4";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
 
     if (!lat || !lng) {
-      return NextResponse.json(
-        { error: "Latitude and longitude are required" },
-        { status: 400 }
-      );
+      return new Response("Missing coordinates", { status: 400 });
     }
 
     if (!GOOGLE_MAPS_API_KEY) {
       console.error("Google Maps API key is missing");
-      return NextResponse.json(
-        { error: "Configuration error" },
-        { status: 500 }
-      );
+      return new Response("Configuration error", { status: 500 });
     }
 
     const response = await fetch(
@@ -31,15 +27,12 @@ export async function GET(request: Request) {
 
     if (data.status !== "OK") {
       console.error("Geocoding API error:", data);
-      return NextResponse.json({ error: "Geocoding failed" }, { status: 500 });
+      return new Response("Geocoding failed", { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return new Response(JSON.stringify(data));
   } catch (error) {
-    console.error("Server error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Error in reverse geocoding:", error);
+    return new Response("Internal Server Error", { status: 500 });
   }
 }
