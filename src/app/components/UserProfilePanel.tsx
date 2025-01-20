@@ -1,27 +1,22 @@
 "use client";
 
-import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
-
 import {
   Dropdown,
   DropdownTrigger,
-  User,
   DropdownMenu,
   DropdownItem,
-  DropdownSection,
   Avatar,
+  DropdownSection,
 } from "@nextui-org/react";
-import { User as PrismaUser } from "@prisma/client";
-import Link from "next/link";
-import React from "react";
 import { useRouter } from "next/navigation";
 
-interface Props {
-  user: PrismaUser;
+export default function UserProfilePanel({
+  user,
+  role,
+}: {
+  user: any;
   role?: string | null;
-}
-
-const UserProfilePanel = ({ user, role = null }: Props) => {
+}) {
   const router = useRouter();
   const isAdmin = role === "site-admin";
 
@@ -32,70 +27,78 @@ const UserProfilePanel = ({ user, role = null }: Props) => {
           isBordered
           as="button"
           className="transition-transform"
-          src={user.avatarUrl ?? "/profile.png"}
+          src={user?.picture || ""}
           size="sm"
         />
       </DropdownTrigger>
       <DropdownMenu aria-label="Profile Actions" variant="flat">
-        <DropdownItem key="profile" href="/user/profile">
-          <Link href="/user/profile">Profil</Link>
+        <DropdownItem
+          key="profile"
+          onPress={() => router.push("/user/profile")}
+        >
+          Profil
         </DropdownItem>
-        <DropdownItem key="properties" href="/user/properties">
-          <Link className="w-full" href="/user/properties">
-            İlan Listesi
-          </Link>
-        </DropdownItem>
-        {isAdmin ? (
-          <>
-            <DropdownItem key="admin-offices">
-              <Link href="/admin/offices" className="w-full">
-                Ofisler
-              </Link>
-            </DropdownItem>
 
+        <DropdownItem
+          key="properties"
+          onPress={() => router.push("/user/properties")}
+        >
+          İlan Listesi
+        </DropdownItem>
+
+        {isAdmin ? (
+          <DropdownSection title="Admin">
+            <DropdownItem
+              key="admin-offices"
+              onPress={() => router.push("/admin/offices")}
+            >
+              Ofisler
+            </DropdownItem>
             <DropdownItem
               key="admin-office-workers"
-              href="/admin/office-workers"
+              onPress={() => router.push("/admin/office-workers")}
             >
-              <Link href="/admin/office-workers">Ofis Çalışanları</Link>
+              Ofis Çalışanları
             </DropdownItem>
             <DropdownItem
               key="admin-prospect-agents"
-              href="/admin/prospect-agents"
+              onPress={() => router.push("/admin/prospect-agents")}
             >
-              <Link href="/admin/prospect-agents">Danışman Adayları</Link>
+              Danışman Adayları
             </DropdownItem>
             <DropdownItem
               key="admin-prospect-customers"
-              href="/admin/prospect-customers"
+              onPress={() => router.push("/admin/prospect-customers")}
             >
-              <Link href="/admin/prospect-customers">Müşteri Adayları</Link>
+              Müşteri Adayları
             </DropdownItem>
             <DropdownItem
               key="admin-office-worker-reviews"
-              href="/admin/office-worker-reviews"
+              onPress={() => router.push("/admin/office-worker-reviews")}
             >
-              <Link href="/admin/office-worker-reviews">Yorumlar</Link>
+              Yorumlar
             </DropdownItem>
             <DropdownItem
               key="admin-property-descriptors"
-              href="/admin/property-descriptors"
+              onPress={() => router.push("/admin/property-descriptors")}
             >
-              <Link href="/admin/property-descriptors">
-                Özellik Tanımlayıcıları
-              </Link>
+              Özellik Tanımlayıcıları
             </DropdownItem>
-          </>
+          </DropdownSection>
         ) : null}
+
         <DropdownItem
           key="logout"
           color="danger"
           className="text-danger p-2 h-full"
+          onPress={() =>
+            (window.location.href =
+              "/api/auth/logout?post_logout_redirect_url=/")
+          }
         >
-          <LogoutLink>Çıkış Yap</LogoutLink>
+          Çıkış Yap
         </DropdownItem>
       </DropdownMenu>
     </Dropdown>
   );
-};
-export default UserProfilePanel;
+}
