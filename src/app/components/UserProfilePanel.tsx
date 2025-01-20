@@ -85,8 +85,12 @@ const UserProfilePanel = ({ user, role = null }: Props) => {
             </DropdownItem>
           </>
         ) : null}
-        <DropdownItem key="logout" color="danger" className="text-danger">
-          <LogoutLink className="w-full h-full flex items-center">
+        <DropdownItem
+          key="logout"
+          color="danger"
+          className="text-danger p-0 h-full"
+        >
+          <LogoutLink className="w-full h-full px-2 py-2 inline-flex items-center">
             Çıkış Yap
           </LogoutLink>
         </DropdownItem>
