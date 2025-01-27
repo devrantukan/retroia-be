@@ -84,6 +84,12 @@ export default function UserProfilePanel({
             >
               Özellik Tanımlayıcıları
             </DropdownItem>
+            <DropdownItem
+              key="admin-contact-forms"
+              onPress={() => router.push("/admin/contact-forms")}
+            >
+              İletişim Formları
+            </DropdownItem>
           </DropdownSection>
         ) : null}
 

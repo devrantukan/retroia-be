@@ -1,7 +1,7 @@
 "use client";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { OfficeFormSchema } from "@/lib/zodSchema";
+import { OfficeFormSchema, OfficeFormType } from "@/lib/validations/office";
 import { Input, Button, Textarea, Select, SelectItem } from "@nextui-org/react";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
@@ -9,6 +9,12 @@ import { useRouter } from "next/navigation";
 import ImageUploader from "@/app/admin/offices/_components/ImageUploader";
 import { saveOffice, updateOffice } from "@/lib/actions/office";
 import slugify from "slugify";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
+
+const QuillEditor = dynamic(() => import("@/app/components/RichTextEditor"), {
+  ssr: false,
+});
 
 interface OfficeFormProps {
   mode: "add" | "edit";
@@ -34,19 +40,21 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    control,
+    formState: { errors, isSubmitting },
     watch,
     setValue,
-  } = useForm({
+  } = useForm<OfficeFormType>({
     resolver: zodResolver(OfficeFormSchema),
     defaultValues:
       mode === "edit"
         ? {
+            ...office,
+            description: office.description || "",
             name: office?.name || "",
             email: office?.email || "",
             phone: office?.phone || "",
             fax: office?.fax || "",
-            description: office?.description || "",
             streetAddress: office?.streetAddress || "",
             zip: office?.zip || "",
             countryId: office?.countryId || "",
@@ -68,7 +76,9 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
   useEffect(() => {
     if (mode === "edit" && office) {
       Object.entries(office).forEach(([key, value]) => {
-        setValue(key as any, value);
+        if (key in OfficeFormSchema.shape) {
+          setValue(key as keyof OfficeFormType, value as string | number);
+        }
       });
     }
   }, [mode, office, setValue]);
@@ -187,16 +197,21 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
     }
   }, [districtId, locationData.neighborhoods]);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: OfficeFormType) => {
     try {
       setLoading(true);
       const slug = slugify(data.name, { lower: true, strict: true });
+      const formData = {
+        ...data,
+        slug,
+        avatarUrl,
+      };
 
       if (mode === "add") {
-        await saveOffice({ ...data, slug });
+        await saveOffice(formData);
         toast.success("Ofis başarıyla eklendi!");
       } else {
-        await updateOffice(office.id, { ...data, slug });
+        await updateOffice(office.id, formData);
         toast.success("Ofis başarıyla güncellendi!");
       }
       router.push("/admin/offices");
@@ -223,6 +238,7 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
           currentImage={avatarUrl}
           onImageUpload={setAvatarUrl}
           label="Ofis Logosu"
+          officeName={watch("name")}
         />
 
         <Input
@@ -244,27 +260,28 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
         <Input
           {...register("fax")}
           label="Faks"
-          errorMessage={errors.fax?.message as string}
+          errorMessage={errors.fax?.message}
           isInvalid={!!errors.fax}
-          value={watch("fax")}
         />
 
         <Input
           {...register("webUrl")}
           label="Web Sitesi"
-          errorMessage={errors.webUrl?.message as string}
+          errorMessage={errors.webUrl?.message}
           isInvalid={!!errors.webUrl}
-          value={watch("webUrl")}
         />
 
         <Select
           label="Ülke"
-          selectedKeys={countryId ? [countryId.toString()] : []}
+          selectedKeys={countryId ? [String(countryId)] : []}
           onChange={(e) => setValue("countryId", Number(e.target.value))}
           items={locationData.countries || []}
         >
           {(country: { country_id: number; country_name: string }) => (
-            <SelectItem key={country.country_id} value={country.country_id}>
+            <SelectItem
+              key={String(country.country_id)}
+              value={country.country_id}
+            >
               {country.country_name}
             </SelectItem>
           )}
@@ -318,9 +335,8 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
         <Input
           {...register("streetAddress")}
           label="Adres"
-          errorMessage={errors.streetAddress?.message as string}
+          errorMessage={errors.streetAddress?.message}
           isInvalid={!!errors.streetAddress}
-          value={watch("streetAddress")}
         />
 
         <Input
@@ -330,45 +346,72 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
           isInvalid={!!errors.zip}
           value={watch("zip")}
         />
+
+        <Input
+          {...register("latitude", {
+            setValueAs: (v) => (v === "" ? 0 : parseFloat(v)),
+          })}
+          type="number"
+          label="Enlem"
+          errorMessage={errors.latitude?.message}
+          isInvalid={!!errors.latitude}
+        />
+
+        <Input
+          {...register("longitude", {
+            setValueAs: (v) => (v === "" ? 0 : parseFloat(v)),
+          })}
+          type="number"
+          label="Boylam"
+          errorMessage={errors.longitude?.message}
+          isInvalid={!!errors.longitude}
+        />
       </div>
 
-      <Textarea
-        {...register("description")}
-        label="Açıklama"
-        errorMessage={errors.description?.message as string}
-        isInvalid={!!errors.description}
-        value={watch("description")}
+      <Controller
+        name="description"
+        control={control}
+        render={({ field }) => (
+          <div className="min-h-[300px]">
+            <div className="text-sm font-medium mb-2">Hakkında</div>
+            <QuillEditor
+              value={field.value || ""}
+              onChange={field.onChange}
+              className="h-[240px]"
+            />
+            {errors.description && (
+              <p className="text-danger text-sm">
+                {errors.description.message}
+              </p>
+            )}
+          </div>
+        )}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Input
-          {...register("xAccountId")}
+          {...register("xAccountId" as keyof OfficeFormType)}
           label="X (Twitter) Hesabı"
-          value={watch("xAccountId")}
         />
 
         <Input
-          {...register("facebookAccountId")}
+          {...register("facebookAccountId" as keyof OfficeFormType)}
           label="Facebook Hesabı"
-          value={watch("facebookAccountId")}
         />
 
         <Input
-          {...register("linkedInAccountId")}
+          {...register("linkedInAccountId" as keyof OfficeFormType)}
           label="LinkedIn Hesabı"
-          value={watch("linkedInAccountId")}
         />
 
         <Input
-          {...register("instagramAccountId")}
+          {...register("instagramAccountId" as keyof OfficeFormType)}
           label="Instagram Hesabı"
-          value={watch("instagramAccountId")}
         />
 
         <Input
-          {...register("youtubeAccountId")}
+          {...register("youtubeAccountId" as keyof OfficeFormType)}
           label="YouTube Hesabı"
-          value={watch("youtubeAccountId")}
         />
       </div>
 

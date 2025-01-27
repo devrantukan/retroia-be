@@ -5,20 +5,44 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "react-toastify";
 import { uploadToSupabase } from "@/lib/utils";
+import slugify from "slugify";
 
 interface Props {
   currentImage?: string;
   onImageUpload: (url: string) => void;
   label?: string;
+  officeName?: string;
 }
 
 export default function ImageUploader({
   currentImage,
   onImageUpload,
   label,
+  officeName,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(currentImage);
+
+  const handleImageUpload = useCallback(
+    async (file: File) => {
+      try {
+        const slug = officeName
+          ? slugify(officeName, { lower: true, strict: true })
+          : "";
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${slug}.${fileExt}`;
+
+        const url = await uploadToSupabase(file, "office-images", fileName);
+        onImageUpload(url);
+        setPreviewUrl(url);
+        toast.success("Görsel başarıyla yüklendi!");
+      } catch (error) {
+        console.error("Upload error:", error);
+        toast.error("Resim yüklenirken bir hata oluştu");
+      }
+    },
+    [officeName, onImageUpload]
+  );
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
@@ -27,18 +51,12 @@ export default function ImageUploader({
 
       try {
         setUploading(true);
-        const url = await uploadToSupabase(file);
-        onImageUpload(url);
-        setPreviewUrl(url);
-        toast.success("Görsel başarıyla yüklendi!");
-      } catch (error) {
-        console.error("Upload error:", error);
-        toast.error("Görsel yüklenirken bir hata oluştu!");
+        await handleImageUpload(file);
       } finally {
         setUploading(false);
       }
     },
-    [onImageUpload]
+    [handleImageUpload]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

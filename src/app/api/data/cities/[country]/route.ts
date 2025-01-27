@@ -17,7 +17,7 @@ export async function GET(
     city_id: city.city_id,
     city_name: city.city_name,
   }));
-  console.log(cityNames);
+  // console.log(cityNames);
 
   return NextResponse.json(cityNames);
 }

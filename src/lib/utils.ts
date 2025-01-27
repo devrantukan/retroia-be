@@ -19,33 +19,30 @@ export function formatDate(date: Date) {
   });
 }
 
-export async function uploadToSupabase(file: File): Promise<string> {
+export async function uploadToSupabase(
+  file: File,
+  bucket: string = "office-images",
+  fileName?: string
+) {
   try {
-    // Create a unique file name
     const fileExt = file.name.split(".").pop();
-    const fileName = `${Math.random()
-      .toString(36)
-      .substring(2)}-${Date.now()}.${fileExt}`;
-    const filePath = `offices/${fileName}`;
+    const filePath = fileName || `${Math.random()}.${fileExt}`;
 
-    // Upload the file
-    const { error: uploadError, data } = await supabase.storage
-      .from("siteImages")
+    const { data, error } = await supabase.storage
+      .from(bucket)
       .upload(filePath, file, {
+        upsert: true,
         cacheControl: "3600",
-        upsert: false,
+        contentType: file.type,
       });
 
-    if (uploadError) {
-      throw uploadError;
-    }
+    if (error) throw error;
 
-    // Get the public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("siteImages").getPublicUrl(filePath);
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
 
-    return publicUrl;
+    return urlData.publicUrl;
   } catch (error) {
     console.error("Error uploading to Supabase:", error);
     throw new Error("Failed to upload image");
