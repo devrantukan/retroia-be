@@ -12,6 +12,9 @@ export async function GET(
       city_id: parseInt(params.city),
       district_id: parseInt(params.districtId),
     },
+    orderBy: {
+      neighborhood_name: "asc",
+    },
   });
 
   const neighborhoodNames = neighborhoods.map((neighborhood) => ({

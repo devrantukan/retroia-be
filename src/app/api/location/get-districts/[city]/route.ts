@@ -21,6 +21,9 @@ export async function GET(
   console.log("params city", params.city);
   const districts = await prisma.district.findMany({
     where: { city_name: params.city },
+    orderBy: {
+      district_name: "asc",
+    },
   });
 
   // console.log(districts);

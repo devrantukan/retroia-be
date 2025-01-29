@@ -100,7 +100,14 @@ export async function saveProperty(
         },
       },
       feature: {
-        create: propertyData.propertyFeature,
+        create: {
+          ...propertyData.propertyFeature,
+          bedrooms: propertyData.propertyFeature.bedrooms.toString(),
+          bathrooms: Number(propertyData.propertyFeature.bathrooms),
+          floor: Number(propertyData.propertyFeature.floor),
+          totalFloor: Number(propertyData.propertyFeature.totalFloor),
+          area: Number(propertyData.propertyFeature.area),
+        },
       },
       descriptors: {
         create: descriptorData.updateData.map(({ descriptorId }) => ({
@@ -175,6 +182,17 @@ export async function editProperty(
           subTypeId: Number(propertyData.subTypeId) || 0,
           contractId: Number(propertyData.contractId),
           agentId: Number(propertyData.agentId) || 0,
+          videoSource: propertyData.videoSource,
+          threeDSource: propertyData.threeDSource,
+          feature: {
+            update: {
+              bedrooms: propertyData.propertyFeature.bedrooms.toString(),
+              bathrooms: propertyData.propertyFeature.bathrooms,
+              floor: propertyData.propertyFeature.floor,
+              totalFloor: propertyData.propertyFeature.totalFloor,
+              area: propertyData.propertyFeature.area,
+            },
+          },
           descriptors: {
             deleteMany: {},
             create: descriptorData.updateData.map(({ descriptorId }) => ({
@@ -196,6 +214,7 @@ export async function editProperty(
           location: true,
           images: true,
           descriptors: true,
+          feature: true,
         },
       });
     });
@@ -232,7 +251,7 @@ export async function uploadImages(images: File[]) {
       const filepath = path.join(process.cwd(), "public/uploads", filename);
 
       // Save file
-      await writeFile(filepath, buffer);
+      await writeFile(filepath, new Uint8Array(buffer));
       return `/uploads/${filename}`;
     });
 

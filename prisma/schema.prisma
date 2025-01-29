@@ -68,7 +68,7 @@ model PropertyImage {
 
 model PropertyFeature {
   id              Int      @id @default(autoincrement())
-  bedrooms        Int
+  bedrooms        String
   bathrooms       Int
   floor           Int
   totalFloor      Int

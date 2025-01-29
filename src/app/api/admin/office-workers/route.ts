@@ -18,6 +18,9 @@ export async function GET() {
         office: true,
         role: true,
       },
+      orderBy: {
+        name: "asc",
+      },
     });
 
     return NextResponse.json(workers);

@@ -94,7 +94,18 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
     resolver: zodResolver(AddPropertyFormSchema),
     defaultValues: {
       location: props.property?.location ?? undefined,
-      propertyFeature: props.property?.feature ?? undefined,
+      propertyFeature: props.property?.feature
+        ? {
+            bedrooms: props.property.feature.bedrooms,
+            bathrooms: Number(props.property.feature.bathrooms),
+            floor: Number(props.property.feature.floor),
+            totalFloor: Number(props.property.feature.totalFloor),
+            area: Number(props.property.feature.area),
+            hasSwimmingPool: props.property.feature.hasSwimmingPool,
+            hasGardenYard: props.property.feature.hasGardenYard,
+            hasBalcony: props.property.feature.hasBalcony,
+          }
+        : undefined,
       description: props.property?.description ?? undefined,
       name: props.property?.name ?? undefined,
       price: props.property?.price ?? undefined,

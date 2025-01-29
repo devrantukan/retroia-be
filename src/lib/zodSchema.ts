@@ -59,15 +59,8 @@ export const AddPropertyFormSchema = z.object({
     longitude: z.number().optional(),
   }),
   propertyFeature: z.object({
-    bedrooms: z
-      .string()
-      .regex(new RegExp("^[0-9]+$"), "Lütfen yatak odası sayısını giriniz")
-      .transform((data: unknown) => Number(data)),
-    bathrooms: z
-      .string()
-      .min(1, "Lütfen banyo sayısını seçiniz")
-      .regex(new RegExp("^[0-9]+$"), "Lütfen banyo sayısını giriniz")
-      .transform((data: unknown) => Number(data)),
+    bedrooms: z.string(),
+    bathrooms: z.number(),
     floor: z.number(),
     totalFloor: z.number(),
     area: z.number(),

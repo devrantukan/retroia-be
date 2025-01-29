@@ -11,6 +11,9 @@ export async function GET(
     where: {
       city_id: parseInt(params.city),
     },
+    orderBy: {
+      district_name: "asc",
+    },
   });
 
   let districtsObj: Record<string, string[]> = {};

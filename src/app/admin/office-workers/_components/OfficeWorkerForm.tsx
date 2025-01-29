@@ -25,34 +25,26 @@ import {
   createOfficeWorker,
   updateOfficeWorker,
 } from "@/lib/actions/office-worker";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { createClient } from "@supabase/supabase-js";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
+import ImageUploader from "@/app/admin/offices/_components/ImageUploader";
+import {
+  OfficeWorkerSchema,
+  type OfficeWorkerFormType,
+} from "@/lib/validations/office-worker";
 
-const formSchema = z.object({
-  name: z.string().min(2, "İsim en az 2 karakter olmalıdır"),
-  surname: z.string().min(2, "Soyisim en az 2 karakter olmalıdır"),
-  email: z.string().email("Geçerli bir e-posta adresi giriniz"),
-  phone: z.string().min(10, "Geçerli bir telefon numarası giriniz"),
-  roleId: z.string(),
-  officeId: z.string(),
-  about: z.string().min(10, "Hakkında kısmı en az 10 karakter olmalıdır"),
-  avatarUrl: z.string().optional(),
-  webUrl: z
-    .string()
-    .url("Geçerli bir web adresi giriniz")
-    .optional()
-    .or(z.literal("")),
-  xAccountId: z.string().optional().or(z.literal("")),
-  facebookAccountId: z.string().optional().or(z.literal("")),
-  linkedInAccountId: z.string().optional().or(z.literal("")),
-  instagramAccountId: z.string().optional().or(z.literal("")),
-  youtubeAccountId: z.string().optional().or(z.literal("")),
-  commercialDocumentId: z.string().optional().or(z.literal("")),
-  companyLegalName: z.string().optional().or(z.literal("")),
-  slug: z.string().min(2, "Slug en az 2 karakter olmalıdır"),
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+const QuillEditor = dynamic(() => import("@/app/components/RichTextEditor"), {
+  ssr: false,
 });
 
 type Office = {
@@ -62,19 +54,16 @@ type Office = {
 
 type Role = {
   id: number;
-  name: string;
+  title: string;
 };
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export function OfficeWorkerForm({ worker }: { worker?: any }) {
   const router = useRouter();
   const [offices, setOffices] = useState<Office[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(worker?.avatarUrl || "");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -97,40 +86,71 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
     fetchData();
   }, []);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: worker || {
-      name: "",
-      surname: "",
-      email: "",
-      phone: "",
-      about: "",
-      webUrl: "",
-      xAccountId: "",
-      facebookAccountId: "",
-      linkedInAccountId: "",
-      instagramAccountId: "",
-      youtubeAccountId: "",
-      commercialDocumentId: "",
-      companyLegalName: "",
-      slug: "",
-    },
+  const form = useForm<OfficeWorkerFormType>({
+    resolver: zodResolver(OfficeWorkerSchema),
+    defaultValues: worker
+      ? {
+          name: worker.name,
+          surname: worker.surname,
+          email: worker.email,
+          phone: worker.phone,
+          about: worker.about || "",
+          roleId: worker.roleId?.toString(),
+          officeId: worker.officeId?.toString(),
+          webUrl: worker.webUrl || "",
+          xAccountId: worker.xAccountId || "",
+          facebookAccountId: worker.facebookAccountId || "",
+          linkedInAccountId: worker.linkedInAccountId || "",
+          instagramAccountId: worker.instagramAccountId || "",
+          youtubeAccountId: worker.youtubeAccountId || "",
+          commercialDocumentId: worker.commercialDocumentId || "",
+          companyLegalName: worker.companyLegalName || "",
+        }
+      : {
+          name: "",
+          surname: "",
+          email: "",
+          phone: "",
+          about: "",
+          roleId: "",
+          officeId: "",
+          webUrl: "",
+          xAccountId: "",
+          facebookAccountId: "",
+          linkedInAccountId: "",
+          instagramAccountId: "",
+          youtubeAccountId: "",
+          commercialDocumentId: "",
+          companyLegalName: "",
+        },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const onSubmit = async (data: OfficeWorkerFormType) => {
     try {
+      setLoading(true);
+      const formData = {
+        ...data,
+        avatarUrl: avatarUrl || "",
+        roleId: Number(data.roleId),
+        officeId: Number(data.officeId),
+      };
+
       if (worker) {
-        await updateOfficeWorker(worker.id, values);
-        toast.success("Çalışan başarıyla güncellendi");
+        await updateOfficeWorker(worker.id, formData);
+        toast.success("Personel başarıyla güncellendi!");
       } else {
-        await createOfficeWorker(values);
-        toast.success("Çalışan başarıyla oluşturuldu");
+        await createOfficeWorker(formData);
+        toast.success("Personel başarıyla eklendi!");
       }
       router.push("/admin/office-workers");
+      router.refresh();
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      console.error(error);
+      toast.error("Bir hata oluştu!");
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>
@@ -141,15 +161,13 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
             name="avatarUrl"
             render={({ field }) => (
               <FormItem className="col-span-2">
-                <FormLabel>Profil Fotoğrafı</FormLabel>
-                <FormControl>
-                  <ImageUpload
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    onUpload={(url: string) => field.onChange(url)}
-                  />
-                </FormControl>
-                <FormMessage />
+                <FormLabel>Fotoğraf</FormLabel>
+                <ImageUploader
+                  currentImage={avatarUrl}
+                  onImageUpload={setAvatarUrl}
+                  label="Personel Fotoğrafı"
+                  officeName={form.watch("name")}
+                />
               </FormItem>
             )}
           />
@@ -217,7 +235,13 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
               <FormItem className="col-span-2">
                 <FormLabel>Hakkında</FormLabel>
                 <FormControl>
-                  <Textarea {...field} rows={4} />
+                  <div className="min-h-[300px]">
+                    <QuillEditor
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      className="h-[260px]"
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -232,7 +256,8 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
                 <FormLabel>Ofis</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value?.toString()}
+                  defaultValue={worker?.officeId?.toString()}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -260,7 +285,8 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
                 <FormLabel>Rol</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value?.toString()}
+                  defaultValue={worker?.roleId?.toString()}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -270,7 +296,7 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
                   <SelectContent>
                     {roles?.map((role) => (
                       <SelectItem key={role.id} value={role.id.toString()}>
-                        {role.name}
+                        {role.title}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -369,7 +395,7 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
             name="commercialDocumentId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Ticari Belge ID</FormLabel>
+                <FormLabel>Ticari Belge No</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -393,7 +419,9 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
           />
         </div>
 
-        <Button type="submit">{worker ? "Güncelle" : "Oluştur"}</Button>
+        <Button type="submit" disabled={loading}>
+          {worker ? "Güncelle" : "Oluştur"}
+        </Button>
       </form>
     </Form>
   );

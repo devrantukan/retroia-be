@@ -12,7 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { deleteOfficeWorker } from "@/lib/actions/office-worker";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
+import { PencilSimple, Trash } from "@phosphor-icons/react";
 
 type OfficeWorker = {
   id: number;
@@ -20,11 +22,12 @@ type OfficeWorker = {
   surname: string;
   email: string;
   office: { name: string };
-  role: { name: string };
+  role: { title: string };
 };
 
 export function OfficeWorkerList() {
   const [workers, setWorkers] = useState<OfficeWorker[]>([]);
+  const router = useRouter();
 
   const fetchWorkers = async () => {
     try {
@@ -47,17 +50,17 @@ export function OfficeWorkerList() {
   }, []);
 
   const handleDelete = async (id: number) => {
-    if (confirm("Bu çalışanı silmek istediğinizden emin misiniz?")) {
+    if (confirm("Bu personeli silmek istediğinizden emin misiniz?")) {
       try {
         await deleteOfficeWorker(id);
-        toast.success("Çalışan başarıyla silindi");
-        fetchWorkers();
+        toast.success("Personel başarıyla silindi!");
+        window.location.reload();
       } catch (error) {
-        toast.error("Bir hata oluştu");
+        console.error("Delete error:", error);
+        toast.error("Personel silinirken bir hata oluştu!");
       }
     }
   };
-
   const columns = [
     { name: "AD SOYAD", uid: "fullName" },
     { name: "E-POSTA", uid: "email" },
@@ -79,11 +82,11 @@ export function OfficeWorkerList() {
             <TableCell>{`${worker.name} ${worker.surname}`}</TableCell>
             <TableCell>{worker.email}</TableCell>
             <TableCell>{worker.office.name}</TableCell>
-            <TableCell>{worker.role.name}</TableCell>
+            <TableCell>{worker.role.title}</TableCell>
             <TableCell className="space-x-2">
               <Link href={`/admin/office-workers/edit/${worker.id}`}>
                 <Button variant="outline" size="sm">
-                  Düzenle
+                  <PencilSimple size={16} weight="bold" />
                 </Button>
               </Link>
               <Button
@@ -91,7 +94,7 @@ export function OfficeWorkerList() {
                 size="sm"
                 onClick={() => handleDelete(worker.id)}
               >
-                Sil
+                <Trash size={16} weight="bold" />
               </Button>
             </TableCell>
           </TableRow>

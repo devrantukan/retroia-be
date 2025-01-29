@@ -12,6 +12,9 @@ export async function GET(
       district_name: params.district,
       city_name: params.city,
     },
+    orderBy: {
+      neighborhood_name: "asc",
+    },
   });
   // console.log(neighborhoodData);
   const data = neighborhoodData.map((neighborhood) => ({
