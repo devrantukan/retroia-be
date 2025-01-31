@@ -97,7 +97,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
       propertyFeature: props.property?.feature
         ? {
             bedrooms: props.property.feature.bedrooms,
-            bathrooms: Number(props.property.feature.bathrooms),
+            bathrooms: props.property.feature.bathrooms.toString(),
             floor: Number(props.property.feature.floor),
             totalFloor: Number(props.property.feature.totalFloor),
             area: Number(props.property.feature.area),

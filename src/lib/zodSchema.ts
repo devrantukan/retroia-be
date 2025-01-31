@@ -60,7 +60,7 @@ export const AddPropertyFormSchema = z.object({
   }),
   propertyFeature: z.object({
     bedrooms: z.string(),
-    bathrooms: z.number(),
+    bathrooms: z.string(),
     floor: z.number(),
     totalFloor: z.number(),
     area: z.number(),

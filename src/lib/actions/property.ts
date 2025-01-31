@@ -187,7 +187,7 @@ export async function editProperty(
           feature: {
             update: {
               bedrooms: propertyData.propertyFeature.bedrooms.toString(),
-              bathrooms: propertyData.propertyFeature.bathrooms,
+              bathrooms: Number(propertyData.propertyFeature.bathrooms),
               floor: propertyData.propertyFeature.floor,
               totalFloor: propertyData.propertyFeature.totalFloor,
               area: propertyData.propertyFeature.area,
