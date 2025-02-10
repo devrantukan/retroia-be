@@ -105,6 +105,7 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
           youtubeAccountId: worker.youtubeAccountId || "",
           commercialDocumentId: worker.commercialDocumentId || "",
           companyLegalName: worker.companyLegalName || "",
+          userId: worker.userId || "",
         }
       : {
           name: "",
@@ -122,17 +123,18 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
           youtubeAccountId: "",
           commercialDocumentId: "",
           companyLegalName: "",
+          userId: "",
         },
   });
 
   const onSubmit = async (data: OfficeWorkerFormType) => {
     try {
       setLoading(true);
-      const formData = {
+      const formData: OfficeWorkerFormType = {
         ...data,
         avatarUrl: avatarUrl || "",
-        roleId: Number(data.roleId),
-        officeId: Number(data.officeId),
+        roleId: data.roleId.toString(),
+        officeId: data.officeId.toString(),
       };
 
       if (worker) {
@@ -410,6 +412,20 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Şirket Yasal Adı</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="userId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Kinde User</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>

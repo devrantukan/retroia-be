@@ -106,7 +106,8 @@ const EditPropertyPage = async ({ params }: Props) => {
   // console.log("db properties", property);
 
   if (!property) return notFound();
-  if (!user || property.userId !== user.id) redirect("/unauthorized");
+  if (!user || (property.userId !== user.id && role !== "site-admin"))
+    redirect("/unauthorized");
   return (
     <AddPropertyForm
       countries={countries}

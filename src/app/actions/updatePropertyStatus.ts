@@ -4,10 +4,20 @@ import { prisma } from "@/lib/prisma";
 
 export async function updatePublishingStatus(
   propertyId: string,
-  status: "PENDING" | "PUBLISHED"
+  status: "PUBLISHED" | "PENDING"
 ) {
-  await prisma.property.update({
-    where: { id: parseInt(propertyId) },
-    data: { publishingStatus: status },
-  });
+  try {
+    const result = await prisma.property.update({
+      where: {
+        id: parseInt(propertyId),
+      },
+      data: {
+        publishingStatus: status,
+      },
+    });
+    return result;
+  } catch (error) {
+    console.error("Error in updatePublishingStatus:", error);
+    return null;
+  }
 }

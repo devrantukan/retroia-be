@@ -24,7 +24,7 @@ import Picture from "./Picture";
 import Contact from "./Contact";
 import { FormProvider, SubmitHandler, useForm } from "react-hook-form";
 import { date, z } from "zod";
-import { AddPropertyFormSchema } from "@/lib/zodSchema";
+import { getAddPropertyFormSchema } from "@/lib/zodSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { uploadImages } from "@/lib/upload";
 import {
@@ -82,7 +82,9 @@ interface Props {
   // descriptorCategories: PropertyDescriptorCategory[];
 }
 
-export type AddPropertyInputType = z.infer<typeof AddPropertyFormSchema>;
+export type AddPropertyInputType = z.infer<
+  Awaited<ReturnType<typeof getAddPropertyFormSchema>>
+>;
 
 const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
   const [dbDescriptors, SetDbDescriptors] = useState<Record<string, boolean>>(
@@ -90,8 +92,10 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
   );
 
   const router = useRouter();
+  const [schema, setSchema] = useState<z.ZodObject<any>>();
+
   const methods = useForm<AddPropertyInputType>({
-    resolver: zodResolver(AddPropertyFormSchema),
+    resolver: schema ? zodResolver(schema) : undefined,
     defaultValues: {
       location: props.property?.location ?? undefined,
       propertyFeature: props.property?.feature
@@ -144,6 +148,15 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
     }
   }, [user?.id]);
 
+  useEffect(() => {
+    async function loadSchema() {
+      const formSchema = await getAddPropertyFormSchema();
+      console.log(formSchema);
+      setSchema(formSchema);
+    }
+    loadSchema();
+  }, []);
+
   const handleImages = async (
     newImages: string[],
     deletedImages?: number[]
@@ -193,6 +206,10 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
       setIsSubmitting(false);
     }
   };
+
+  if (!schema) {
+    return <div>Loading...</div>; // Or your loading component
+  }
 
   return (
     <div className="relative">

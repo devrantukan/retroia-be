@@ -133,96 +133,107 @@ export async function saveProperty(
   return result;
 }
 export async function editProperty(
-  propertyId: number,
-  propertyData: AddPropertyInputType,
-  imageUrls?: string[],
-  deletedImageIDs?: number[]
+  id: number,
+  data: any,
+  imagesUrls: string[],
+  deletedImageIDs: number[]
 ) {
-  console.log("Received property data:", typeof propertyData.location.latitude);
-
   try {
-    // Handle descriptors outside transaction
-    const descriptorData = await manageDescriptorData(
-      propertyData.propertyDescriptors,
-      propertyId
-    );
-
-    // Perform updates in a single transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Update location
-      await tx.propertyLocation.update({
-        where: { propertyId },
-        data: {
-          country: propertyData.location.country,
-          city: propertyData.location.city,
-          district: propertyData.location.district,
-          neighborhood: propertyData.location.neighborhood,
-          latitude: propertyData.location.latitude,
-
-          longitude: propertyData.location.longitude,
-
-          streetAddress: propertyData.location.streetAddress || "",
-          state: propertyData.location.state || "",
-          zip: propertyData.location.zip || "",
-          landmark: propertyData.location.landmark || "",
-          region: propertyData.location.region || "",
-        },
-      });
-
+    return await prisma.$transaction(async (tx) => {
       // Update property
-      return tx.property.update({
-        where: { id: propertyId },
+      const property = await tx.property.update({
+        where: { id },
         data: {
-          name: propertyData.name,
-          description: propertyData.description,
-          price: Number(propertyData.price),
-          discountedPrice: Number(propertyData.discountedPrice) || 0,
-          statusId: Number(propertyData.statusId),
-          typeId: Number(propertyData.typeId),
-          subTypeId: Number(propertyData.subTypeId) || 0,
-          contractId: Number(propertyData.contractId),
-          agentId: Number(propertyData.agentId) || 0,
-          videoSource: propertyData.videoSource,
-          threeDSource: propertyData.threeDSource,
+          name: data.name,
+          description: data.description,
+          price: Number(data.price),
+          discountedPrice: Number(data.discountedPrice) || 0,
+          statusId: Number(data.statusId),
+          typeId: Number(data.typeId),
+          subTypeId: Number(data.subTypeId) || 0,
+          contractId: Number(data.contractId),
+          agentId: Number(data.agentId) || 0,
+          videoSource: data.videoSource,
+          threeDSource: data.threeDSource,
+          location: {
+            update: {
+              country: data.location.country,
+              city: data.location.city,
+              district: data.location.district,
+              neighborhood: data.location.neighborhood,
+              latitude: Number(data.location.latitude),
+              longitude: Number(data.location.longitude),
+              streetAddress: data.location.streetAddress || "",
+              state: data.location.state || "",
+              zip: data.location.zip || "",
+              landmark: data.location.landmark || "",
+              region: data.location.region || "",
+            },
+          },
           feature: {
             update: {
-              bedrooms: propertyData.propertyFeature.bedrooms.toString(),
-              bathrooms: Number(propertyData.propertyFeature.bathrooms),
-              floor: propertyData.propertyFeature.floor,
-              totalFloor: propertyData.propertyFeature.totalFloor,
-              area: propertyData.propertyFeature.area,
+              bedrooms: data.propertyFeature.bedrooms.toString(),
+              bathrooms: Number(data.propertyFeature.bathrooms),
+              floor: data.propertyFeature.floor,
+              totalFloor: data.propertyFeature.totalFloor,
+              area: data.propertyFeature.area,
             },
           },
           descriptors: {
             deleteMany: {},
-            create: descriptorData.updateData.map(({ descriptorId }) => ({
-              descriptorId,
-            })),
           },
-          ...(imageUrls && {
-            images: {
-              create: imageUrls.map((url) => ({ url })),
-              ...(deletedImageIDs && {
-                deleteMany: {
-                  id: { in: deletedImageIDs },
-                },
-              }),
-            },
-          }),
-        },
-        include: {
-          location: true,
-          images: true,
-          descriptors: true,
-          feature: true,
+          images: {
+            deleteMany: {},
+          },
         },
       });
-    });
 
-    console.log("Update successful:", result);
-    return result;
+      // Update property features
+      await tx.propertyFeature.update({
+        where: { propertyId: id },
+        data: {
+          ...data.propertyFeature,
+          bedrooms: data.propertyFeature.bedrooms.toString(),
+          bathrooms: Number(data.propertyFeature.bathrooms),
+          floor: Number(data.propertyFeature.floor),
+          totalFloor: Number(data.propertyFeature.totalFloor),
+          area: Number(data.propertyFeature.area),
+        },
+      });
+
+      // Update property descriptors
+      await tx.descriptorsOnProperties.deleteMany({
+        where: { propertyId: id },
+      });
+
+      // Create new descriptors
+      const descriptorEntries = Object.entries(data.propertyDescriptors)
+        .filter(([_, value]) => value === true)
+        .map(([key]) => ({
+          propertyId: id,
+          slug: key.replace(/"/g, ""), // Remove quotes if present
+        }));
+
+      if (descriptorEntries.length > 0) {
+        const descriptors = await tx.propertyDescriptor.findMany({
+          where: {
+            slug: {
+              in: descriptorEntries.map((d) => d.slug.replace(/"/g, "")),
+            },
+          },
+        });
+        await tx.descriptorsOnProperties.createMany({
+          data: descriptorEntries.map(({ slug }) => ({
+            propertyId: id,
+            descriptorId: descriptors.find((d) => d.slug === slug)?.id || 0,
+          })),
+        });
+      }
+
+      return property;
+    });
   } catch (error) {
-    console.error("Property update error:", error);
+    console.error("Error updating property:", error);
     throw error;
   }
 }

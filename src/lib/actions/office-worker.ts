@@ -36,17 +36,19 @@ async function revalidateFrontend(path: string) {
   }
 }
 
-export async function createOfficeWorker(data: any) {
+export async function createOfficeWorker(data: OfficeWorkerFormType) {
   try {
     const worker = await prisma.officeWorker.create({
       data: {
+        ...data,
+        roleId: Number(data.roleId),
+        officeId: Number(data.officeId),
+        userId: data.userId || null,
         name: data.name,
         surname: data.surname,
         email: data.email,
         phone: data.phone,
         about: data.about || "",
-        roleId: Number(data.roleId),
-        officeId: Number(data.officeId),
         webUrl: data.webUrl || "",
         xAccountId: data.xAccountId || "",
         facebookAccountId: data.facebookAccountId || "",
@@ -84,14 +86,33 @@ export async function createOfficeWorker(data: any) {
   }
 }
 
-export async function updateOfficeWorker(id: number, data: any) {
+export async function updateOfficeWorker(
+  id: number,
+  data: OfficeWorkerFormType
+) {
   try {
     const worker = await prisma.officeWorker.update({
       where: { id },
       data: {
         ...data,
-        roleId: parseInt(data.roleId),
-        officeId: parseInt(data.officeId),
+        roleId: Number(data.roleId),
+        officeId: Number(data.officeId),
+        userId: data.userId || null,
+        name: data.name,
+        surname: data.surname,
+        email: data.email,
+        phone: data.phone,
+        about: data.about || "",
+        webUrl: data.webUrl || "",
+        xAccountId: data.xAccountId || "",
+        facebookAccountId: data.facebookAccountId || "",
+        linkedInAccountId: data.linkedInAccountId || "",
+        instagramAccountId: data.instagramAccountId || "",
+        youtubeAccountId: data.youtubeAccountId || "",
+        avatarUrl: data.avatarUrl || "",
+        commercialDocumentId: data.commercialDocumentId || "",
+        companyLegalName: data.companyLegalName || "",
+        slug: `${data.name}-${data.surname}`.toLowerCase().replace(/\s+/g, "-"),
       },
       include: {
         office: true,

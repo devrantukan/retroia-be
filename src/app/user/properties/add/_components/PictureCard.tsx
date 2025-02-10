@@ -1,19 +1,55 @@
-import { TrashIcon } from "@heroicons/react/16/solid";
-import { Card, Image } from "@nextui-org/react";
-import React from "react";
+import { Card } from "@nextui-org/react";
+import Image from "next/image";
+import { XCircle, ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 
 interface Props {
   src: string;
   index: number;
-  onDelete: (index: number) => void;
+  onDelete: () => void;
+  onMoveLeft?: () => void;
+  onMoveRight?: () => void;
 }
-const PictureCard = ({ src, onDelete, index }: Props) => {
+
+const PictureCard = ({
+  src,
+  index,
+  onDelete,
+  onMoveLeft,
+  onMoveRight,
+}: Props) => {
   return (
-    <Card className="flex flex-col items-center mt-4">
-      <Image src={src} className="w-36 h-36 object-contain" />
-      <button className="mb-2" onClick={() => onDelete(index)}>
-        <TrashIcon className="text-danger-400 w-4" />
+    <Card className="relative group">
+      <Image
+        src={src}
+        width={200}
+        height={200}
+        alt={`Property Image ${index + 1}`}
+        className="object-cover"
+      />
+      <button
+        onClick={onDelete}
+        className="absolute top-2 right-2 text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full p-1"
+      >
+        <XCircle size={24} />
       </button>
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        {onMoveLeft && (
+          <button
+            onClick={onMoveLeft}
+            className="text-white bg-black/50 rounded-full p-1 hover:bg-black/70 transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+        )}
+        {onMoveRight && (
+          <button
+            onClick={onMoveRight}
+            className="text-white bg-black/50 rounded-full p-1 hover:bg-black/70 transition-colors"
+          >
+            <ArrowRight size={24} />
+          </button>
+        )}
+      </div>
     </Card>
   );
 };

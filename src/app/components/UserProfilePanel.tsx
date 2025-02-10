@@ -90,6 +90,12 @@ export default function UserProfilePanel({
             >
               İletişim Formları
             </DropdownItem>
+            <DropdownItem
+              key="admin-location-management"
+              onPress={() => router.push("/admin/location-management")}
+            >
+              Lokasyon Yönetimi
+            </DropdownItem>
           </DropdownSection>
         ) : null}
 
