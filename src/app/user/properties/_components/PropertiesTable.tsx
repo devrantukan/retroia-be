@@ -110,6 +110,94 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
     }
   };
 
+  const columns = [
+    {
+      key: "name",
+      label: "BAŞLIK",
+      render: (property: any) => (
+        <TableCell className="text-left">{property.name}</TableCell>
+      ),
+    },
+    {
+      key: "price",
+      label: "FİYAT",
+      render: (property: any) => (
+        <TableCell className="text-right">
+          {new Intl.NumberFormat("tr-TR", {
+            style: "currency",
+            currency: "TRY",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }).format(property.price)}
+        </TableCell>
+      ),
+    },
+    {
+      key: "type",
+      label: "TİP",
+      render: (property: any) => (
+        <TableCell className="text-center">{property.type.value}</TableCell>
+      ),
+    },
+    {
+      key: "status",
+      label: "DURUM",
+      render: (property: any) => (
+        <TableCell className="text-center">{property.status.value}</TableCell>
+      ),
+    },
+    {
+      key: "publishingStatus",
+      label: "Yayın Durumu",
+      render: (property: any) => {
+        console.log("Property publishing status:", property.publishingStatus);
+        const isPublished = property.publishingStatus === "PUBLISHED";
+        return (
+          <TableCell>
+            <div className="flex items-center gap-2">
+              <span className={isPublished ? "text-success" : "text-warning"}>
+                {isPublished ? "Yayında" : "Beklemede"}
+              </span>
+              <Switch
+                isSelected={isPublished}
+                onValueChange={(checked) =>
+                  handlePublishChange(property.id, checked)
+                }
+                size="sm"
+                color="success"
+              />
+            </div>
+          </TableCell>
+        );
+      },
+    },
+    {
+      key: "actions",
+      label: "İŞLEMLER",
+      render: (property: any) => (
+        <TableCell>
+          <div className="flex items-center justify-end gap-4">
+            <Tooltip content="Ön İzleme">
+              <Link href={`/property/${property.id}`}>
+                <EyeIcon className="w-5 text-slate-500" />
+              </Link>
+            </Tooltip>
+            <Tooltip content="İlanı Düzenle" color="warning">
+              <Link href={`/user/properties/${property.id}/edit`}>
+                <PencilIcon className="w-5 text-yellow-500" />
+              </Link>
+            </Tooltip>
+            <Tooltip content="İlanı Sil" color="danger">
+              <Link href={`/user/properties/${property.id}/delete`}>
+                <TrashIcon className="w-5 text-red-500" />
+              </Link>
+            </Tooltip>
+          </div>
+        </TableCell>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col items-center gap-4">
       <Table>
@@ -124,53 +212,7 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
         <TableBody>
           {properties.map((item, index) => (
             <TableRow key={index}>
-              <TableCell className="text-left">{item.name}</TableCell>
-              <TableCell className="text-right">
-                {new Intl.NumberFormat("tr-TR", {
-                  style: "currency",
-                  currency: "TRY",
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                }).format(item.price)}
-              </TableCell>
-              <TableCell className="text-center">{item.type.value}</TableCell>
-              <TableCell className="text-center">{item.status.value}</TableCell>
-              <TableCell className="text-center">
-                <Switch
-                  defaultSelected={item.publishingStatus === "PUBLISHED"}
-                  size="sm"
-                  color="success"
-                  onChange={async (e) => {
-                    const newStatus = e.target.checked
-                      ? "PUBLISHED"
-                      : "PENDING";
-                    await handlePublishChange(
-                      item.id,
-                      newStatus === "PUBLISHED"
-                    );
-                    router.refresh();
-                  }}
-                />
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center justify-end gap-4">
-                  <Tooltip content="Ön İzleme">
-                    <Link href={`/property/${item.id}`}>
-                      <EyeIcon className="w-5 text-slate-500" />
-                    </Link>
-                  </Tooltip>
-                  <Tooltip content="İlanı Düzenle" color="warning">
-                    <Link href={`/user/properties/${item.id}/edit`}>
-                      <PencilIcon className="w-5 text-yellow-500" />
-                    </Link>
-                  </Tooltip>
-                  <Tooltip content="İlanı Sil" color="danger">
-                    <Link href={`/user/properties/${item.id}/delete`}>
-                      <TrashIcon className="w-5 text-red-500" />
-                    </Link>
-                  </Tooltip>
-                </div>
-              </TableCell>
+              {columns.map((column) => column.render(item))}
             </TableRow>
           ))}
         </TableBody>
@@ -196,4 +238,18 @@ type Props2 = {
   }>[];
   totalPages: number;
   currentPage: number;
+};
+
+// Update the data fetching to include publishingStatus
+const fetchProperties = async (page: number) => {
+  try {
+    const response = await fetch(
+      `/api/properties?page=${page}&limit=10&include=publishingStatus`
+    );
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching properties:", error);
+    return null;
+  }
 };
