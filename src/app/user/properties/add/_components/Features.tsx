@@ -75,13 +75,15 @@ const Features = (props: Props) => {
               getValues().propertyFeature.bedrooms
                 ? {
                     defaultSelectedKeys: [
-                      getValues().propertyFeature.bedrooms.toString(),
+                      bedrooms.find(
+                        (b) => b.value === getValues().propertyFeature.bedrooms
+                      )?.value || "",
                     ],
                   }
                 : {})}
             >
               {bedrooms.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
+                <SelectItem key={item.value} value={item.value}>
                   {item.value}
                 </SelectItem>
               ))}
