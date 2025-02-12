@@ -76,10 +76,16 @@ export async function saveProperty(
     updatedAt: new Date(),
   };
 
-  const descriptorData = await manageDescriptorData(
-    propertyData.propertyDescriptors,
-    0 // Temporary ID, will be replaced with the actual property ID
-  );
+  let descriptorData:
+    | { updateData: { propertyId: number; descriptorId: number }[] }
+    | undefined;
+
+  if (propertyData.propertyDescriptors) {
+    descriptorData = await manageDescriptorData(
+      propertyData.propertyDescriptors,
+      0
+    );
+  }
 
   const result = await prisma.property.create({
     data: {
@@ -110,9 +116,10 @@ export async function saveProperty(
         },
       },
       descriptors: {
-        create: descriptorData.updateData.map(({ descriptorId }) => ({
-          descriptorId,
-        })),
+        create:
+          descriptorData?.updateData.map(({ descriptorId }) => ({
+            descriptorId,
+          })) || [],
       },
       userId: userId,
       images: {
@@ -139,99 +146,119 @@ export async function editProperty(
   deletedImageIDs: number[]
 ) {
   try {
-    return await prisma.$transaction(async (tx) => {
-      // Update property
-      const property = await tx.property.update({
-        where: { id },
-        data: {
-          name: data.name,
-          description: data.description,
-          price: Number(data.price),
-          discountedPrice: Number(data.discountedPrice) || 0,
-          statusId: Number(data.statusId),
-          typeId: Number(data.typeId),
-          subTypeId: Number(data.subTypeId) || 0,
-          contractId: Number(data.contractId),
-          agentId: Number(data.agentId) || 0,
-          videoSource: data.videoSource,
-          threeDSource: data.threeDSource,
-          location: {
-            update: {
-              country: data.location.country,
-              city: data.location.city,
-              district: data.location.district,
-              neighborhood: data.location.neighborhood,
-              latitude: Number(data.location.latitude),
-              longitude: Number(data.location.longitude),
-              streetAddress: data.location.streetAddress || "",
-              state: data.location.state || "",
-              zip: data.location.zip || "",
-              landmark: data.location.landmark || "",
-              region: data.location.region || "",
-            },
-          },
-          feature: {
-            update: {
-              bedrooms: data.propertyFeature.bedrooms.toString(),
-              bathrooms: Number(data.propertyFeature.bathrooms),
-              floor: data.propertyFeature.floor,
-              totalFloor: data.propertyFeature.totalFloor,
-              area: data.propertyFeature.area,
-            },
-          },
-          descriptors: {
-            deleteMany: {},
-          },
-          images: {
-            deleteMany: {},
-          },
-        },
-      });
-
-      // Update property features
-      await tx.propertyFeature.update({
-        where: { propertyId: id },
-        data: {
-          ...data.propertyFeature,
-          bedrooms: data.propertyFeature.bedrooms.toString(),
-          bathrooms: Number(data.propertyFeature.bathrooms),
-          floor: Number(data.propertyFeature.floor),
-          totalFloor: Number(data.propertyFeature.totalFloor),
-          area: Number(data.propertyFeature.area),
-        },
-      });
-
-      // Update property descriptors
-      await tx.descriptorsOnProperties.deleteMany({
+    // Handle descriptors outside transaction
+    let descriptorData:
+      | { updateData: { propertyId: number; descriptorId: number }[] }
+      | undefined;
+    if (data.propertyDescriptors) {
+      await prisma.descriptorsOnProperties.deleteMany({
         where: { propertyId: id },
       });
+      descriptorData = await manageDescriptorData(data.propertyDescriptors, id);
+    }
 
-      // Create new descriptors
-      const descriptorEntries = Object.entries(data.propertyDescriptors)
-        .filter(([_, value]) => value === true)
-        .map(([key]) => ({
-          propertyId: id,
-          slug: key.replace(/"/g, ""), // Remove quotes if present
-        }));
+    return await prisma.$transaction(
+      async (tx) => {
+        // Create descriptors if needed
+        if (descriptorData && descriptorData.updateData.length > 0) {
+          await tx.descriptorsOnProperties.createMany({
+            data: descriptorData.updateData,
+          });
+        }
 
-      if (descriptorEntries.length > 0) {
-        const descriptors = await tx.propertyDescriptor.findMany({
-          where: {
-            slug: {
-              in: descriptorEntries.map((d) => d.slug.replace(/"/g, "")),
+        // Handle images
+        if (deletedImageIDs.length > 0) {
+          await tx.propertyImage.deleteMany({
+            where: { id: { in: deletedImageIDs } },
+          });
+        }
+
+        // Update existing images order in a single batch
+        if (data.existingImages?.length > 0) {
+          const activeImages = data.existingImages.filter(
+            (img: { id: number }) => !deletedImageIDs.includes(img.id)
+          );
+
+          if (activeImages.length > 0) {
+            const sortedExistingImages = [...activeImages].sort(
+              (a, b) => a.order - b.order
+            );
+            await Promise.all(
+              sortedExistingImages.map((img, index) =>
+                tx.propertyImage.update({
+                  where: { id: img.id },
+                  data: { order: index },
+                })
+              )
+            );
+          }
+        }
+
+        // Add new images with correct order
+        if (imagesUrls.length > 0) {
+          const startOrder = data.existingImages?.length || 0;
+          await tx.propertyImage.createMany({
+            data: imagesUrls.map((url, index) => ({
+              propertyId: id,
+              url: url,
+              order: startOrder + index,
+            })),
+          });
+        }
+
+        // Update property
+        return await tx.property.update({
+          where: { id },
+          data: {
+            name: data.name,
+            description: data.description,
+            price: Number(data.price),
+            discountedPrice: data.discountedPrice
+              ? Number(data.discountedPrice)
+              : undefined,
+            statusId: Number(data.statusId),
+            typeId: Number(data.typeId),
+            subTypeId: Number(data.subTypeId) || undefined,
+            contractId: Number(data.contractId),
+            agentId: Number(data.agentId) || undefined,
+            videoSource: data.videoSource || "",
+            threeDSource: data.threeDSource || "",
+            location: {
+              update: {
+                ...data.location,
+                latitude: Number(data.location.latitude),
+                longitude: Number(data.location.longitude),
+              },
+            },
+            feature: {
+              update: {
+                ...data.propertyFeature,
+                bedrooms: data.propertyFeature.bedrooms.toString(),
+                bathrooms: Number(data.propertyFeature.bathrooms),
+                floor: Number(data.propertyFeature.floor),
+                totalFloor: Number(data.propertyFeature.totalFloor),
+                area: Number(data.propertyFeature.area),
+              },
+            },
+          },
+          include: {
+            images: {
+              orderBy: { order: "asc" },
+            },
+            location: true,
+            feature: true,
+            descriptors: {
+              include: {
+                descriptor: true,
+              },
             },
           },
         });
-        await tx.descriptorsOnProperties.createMany({
-          data: descriptorEntries.map(({ slug }) => ({
-            propertyId: id,
-            descriptorId: descriptors.find((d) => d.slug === slug)?.id || 0,
-          })),
-        });
+      },
+      {
+        timeout: 60000, // Increased to 60 seconds
       }
-
-      return property;
-    });
+    );
   } catch (error) {
     console.error("Error updating property:", error);
     throw error;

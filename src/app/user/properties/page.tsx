@@ -3,7 +3,7 @@ import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import React from "react";
 import PropertiesTable from "./_components/PropertiesTable";
 import { getUserById } from "@/lib/actions/user";
-
+import { redirect } from "next/navigation";
 const PAGE_SIZE = 12;
 
 interface Props {
@@ -13,6 +13,10 @@ interface Props {
 const PropertiesPage = async ({ searchParams }: Props) => {
   const { getUser } = await getKindeServerSession();
   const user = await getUser();
+  console.log("user is:", user);
+  if (!user) {
+    redirect("/api/auth/login");
+  }
 
   const { getAccessToken } = await getKindeServerSession();
   const accessToken: any = await getAccessToken();
@@ -20,7 +24,7 @@ const PropertiesPage = async ({ searchParams }: Props) => {
 
   const dbUser = await getUserById(user ? user.id : "");
   // console.log("user is:", user);
-  // console.log("dbuser is:", dbUser);
+  console.log("dbuser is:", dbUser);
   // console.log("act", role);
 
   const pagenum = +(searchParams.pagenum ?? 1) - 1;

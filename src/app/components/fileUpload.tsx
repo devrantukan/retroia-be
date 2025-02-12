@@ -18,17 +18,21 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
       onSelect,
       error,
       multiple = false,
-
       ...props
     },
     ref
   ) => {
     const [fileName, setFileName] = useState("");
-    function fileChangedHandler(e: any) {
-      const file = e.target.files[0];
-      setFileName(file.name);
-      onChange && onChange(e);
-      onSelect && onSelect(e);
+
+    function fileChangedHandler(e: React.ChangeEvent<HTMLInputElement>) {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        setFileName(
+          multiple ? `${files.length} files selected` : files[0].name
+        );
+        onChange?.(e);
+        onSelect?.(e);
+      }
     }
 
     return (
@@ -41,18 +45,12 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
             {lablText}
           </label>
         )}
-        <label
-          className={
-            " w-full  relative border flex  rounded-md cursor-pointer  group"
-          }
-        >
-          <div
-            className={` inline-block h-full  py-3 rounded-l-md px-2  text-white transition duration-500  bg-primary-500  hover:bg-primary-700  shadow shadow-violet-600/25 hover:shadow-primary-600/75 `}
-          >
+        <label className="w-full relative border flex rounded-md cursor-pointer group">
+          <div className="inline-block h-full py-3 rounded-l-md px-2 text-white transition duration-500 bg-primary-500 hover:bg-primary-700 shadow shadow-violet-600/25 hover:shadow-primary-600/75">
             <input
               className="hidden"
               ref={ref}
-              onChange={(e) => fileChangedHandler(e)}
+              onChange={fileChangedHandler}
               {...props}
               type="file"
               multiple={multiple}
@@ -69,5 +67,6 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
     );
   }
 );
+
 FileInput.displayName = "FileInput";
 export default FileInput;

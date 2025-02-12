@@ -1,13 +1,15 @@
-import { Card } from "@nextui-org/react";
+import { Card, Button } from "@nextui-org/react";
 import Image from "next/image";
-import { XCircle, ArrowLeft, ArrowRight } from "@phosphor-icons/react";
+import { XCircle, ArrowLeft, ArrowRight, Trash } from "@phosphor-icons/react";
+import { cn } from "@/lib/utils";
+import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 
-interface Props {
+interface PictureCardProps {
   src: string;
   index: number;
-  onDelete: () => void;
-  onMoveLeft?: () => void;
-  onMoveRight?: () => void;
+  onDelete?: (e: React.MouseEvent) => void;
+  onMoveLeft?: (e: React.MouseEvent) => void;
+  onMoveRight?: (e: React.MouseEvent) => void;
 }
 
 const PictureCard = ({
@@ -16,41 +18,53 @@ const PictureCard = ({
   onDelete,
   onMoveLeft,
   onMoveRight,
-}: Props) => {
+}: PictureCardProps) => {
   return (
-    <Card className="relative group">
+    <div className="relative group w-40 h-40">
       <Image
         src={src}
-        width={200}
-        height={200}
-        alt={`Property Image ${index + 1}`}
-        className="object-cover"
+        alt={`Image ${index + 1}`}
+        fill
+        className="object-cover rounded-lg"
       />
-      <button
-        onClick={onDelete}
-        className="absolute top-2 right-2 text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full p-1"
-      >
-        <XCircle size={24} />
-      </button>
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        {onMoveLeft && (
+      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
+        <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={onMoveLeft}
-            className="text-white bg-black/50 rounded-full p-1 hover:bg-black/70 transition-colors"
+            className={cn(
+              "p-2 rounded-full hover:bg-white/20 transition-colors",
+              onMoveLeft
+                ? "bg-white/10 cursor-pointer"
+                : "bg-white/5 cursor-not-allowed"
+            )}
           >
-            <ArrowLeft size={24} />
+            <ChevronLeftIcon className="w-6 h-6 text-white" />
           </button>
-        )}
-        {onMoveRight && (
+
           <button
-            onClick={onMoveRight}
-            className="text-white bg-black/50 rounded-full p-1 hover:bg-black/70 transition-colors"
+            type="button"
+            onClick={onDelete}
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
           >
-            <ArrowRight size={24} />
+            <Trash className="w-6 h-6 text-white" />
           </button>
-        )}
+
+          <button
+            type="button"
+            onClick={onMoveRight}
+            className={cn(
+              "p-2 rounded-full hover:bg-white/20 transition-colors",
+              onMoveRight
+                ? "bg-white/10 cursor-pointer"
+                : "bg-white/5 cursor-not-allowed"
+            )}
+          >
+            <ChevronRightIcon className="w-6 h-6 text-white" />
+          </button>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 };
 

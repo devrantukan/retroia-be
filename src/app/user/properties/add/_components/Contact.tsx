@@ -90,9 +90,15 @@ const Contact = ({
   const propertyDescriptors = getValues().propertyDescriptors;
 
   let descriptorsList: number[] = [];
-  dbDescriptors.forEach((key) => {
-    descriptorsList.push(key.descriptorId);
+  dbDescriptors?.forEach((descriptor) => {
+    if (descriptor && descriptor.descriptorId) {
+      descriptorsList.push(descriptor.descriptorId);
+    }
   });
+
+  // Debug
+  // console.log("dbDescriptors:", dbDescriptors);
+  // console.log("descriptorsList:", descriptorsList);
 
   // const { user } = useKindeBrowserClient();
   //console.log("user is qwdqwe:", user);
@@ -165,7 +171,10 @@ const Contact = ({
                               id={String(descriptor.id)}
                               {...field}
                               value={descriptor.slug}
-                              isSelected={field.value}
+                              isSelected={
+                                field.value ||
+                                descriptorsList.includes(Number(descriptor.id))
+                              }
                               onValueChange={field.onChange}
                             >
                               {descriptor.value}

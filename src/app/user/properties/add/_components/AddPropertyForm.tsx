@@ -126,6 +126,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [images, setImages] = useState<File[]>([]);
+  const [deletedImages, setDeletedImages] = useState<number[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [savedImagesUrl, setSavedImagesUrl] = useState<PropertyImage[]>(
     props.property?.images ?? []
@@ -135,6 +136,10 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
 
   const { user } = useKindeBrowserClient();
   const [dbUser, setDbUser] = useState<any>(null);
+
+  const [existingImages, setExistingImages] = useState<PropertyImage[]>(
+    props.property?.images || []
+  );
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -151,7 +156,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
   useEffect(() => {
     async function loadSchema() {
       const formSchema = await getAddPropertyFormSchema();
-      console.log(formSchema);
+      // console.log(formSchema);
       setSchema(formSchema);
     }
     loadSchema();
@@ -164,9 +169,14 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
     // Your image handling logic here
   };
 
-  const onSubmit: SubmitHandler<AddPropertyInputType> = async (data) => {
+  const onSubmit = async (data: AddPropertyInputType) => {
     setIsSubmitting(true);
     try {
+      let imageUrls: string[] = [];
+      if (images.length > 0) {
+        imageUrls = await uploadImages(images);
+      }
+
       const formDataWithCoordinates = {
         ...data,
         location: {
@@ -174,33 +184,28 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
           latitude: Number(data.location.latitude),
           longitude: Number(data.location.longitude),
         },
+        existingImages,
+        propertyDescriptors: data.propertyDescriptors,
       };
 
       if (isEdit && props.property) {
-        const uploadedUrls =
-          images.length > 0 ? await uploadImages(images) : [];
-        const deletedImageIDs = props.property?.images
-          .filter((item) => !savedImagesUrl.includes(item))
-          .map((item) => item.id);
-
         await editProperty(
-          Number(props.property.id),
+          props.property.id,
           formDataWithCoordinates,
-          uploadedUrls,
-          deletedImageIDs
+          imageUrls,
+          deletedImages
         );
-        toast.success("İlan güncellendi!");
-        window.location.assign("/user/properties");
       } else {
-        const uploadedUrls =
-          images.length > 0 ? await uploadImages(images) : [];
-        await saveProperty(formDataWithCoordinates, uploadedUrls, dbUser?.id);
-        toast.success("İlan oluşturuldu!");
-        window.location.assign("/user/properties");
-        //router.push("/user/properties");
+        await saveProperty(formDataWithCoordinates, imageUrls, user?.id || "");
       }
+
+      toast.success(
+        isEdit ? "İlan güncellendi!" : "İlan başarıyla oluşturuldu!"
+      );
+      // router.push("/user/properties");
+      window.location.assign("/user/properties");
     } catch (error) {
-      console.error("Error submitting property:", error);
+      console.error(error);
       toast.error("Bir hata oluştu!");
     } finally {
       setIsSubmitting(false);
@@ -268,15 +273,15 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
           />
 
           <Picture
-            next={() => setStep((prev) => prev + 1)}
-            prev={() => setStep((prev) => prev - 1)}
             className={cn({ hidden: step !== 3 })}
             images={images}
             setImages={setImages}
-            {...(props.property && {
-              savedImagesUrl: savedImagesUrl,
-              setSavedImageUrl: setSavedImagesUrl,
-            })}
+            deletedImages={deletedImages}
+            setDeletedImages={setDeletedImages}
+            existingImages={existingImages}
+            setExistingImages={setExistingImages}
+            next={() => setStep(step + 1)}
+            prev={() => setStep(step - 1)}
           />
         </form>
       </FormProvider>

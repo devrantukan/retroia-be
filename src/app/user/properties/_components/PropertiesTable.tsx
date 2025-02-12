@@ -150,7 +150,7 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
       key: "publishingStatus",
       label: "Yayın Durumu",
       render: (property: any) => {
-        console.log("Property publishing status:", property.publishingStatus);
+        //  console.log("Property publishing status:", property.publishingStatus);
         const isPublished = property.publishingStatus === "PUBLISHED";
         return (
           <TableCell>

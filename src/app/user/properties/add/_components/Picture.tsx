@@ -1,22 +1,41 @@
 "use client";
 import FileInput from "@/app/components/fileUpload";
 import { Button, Card, cn, Input } from "@nextui-org/react";
-import React, { useCallback } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  Dispatch,
+  SetStateAction,
+  useState,
+  useMemo,
+} from "react";
 import PictureCard from "./PictureCard";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/16/solid";
 import { PropertyImage } from "@prisma/client";
 import { useFormContext } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
 
-interface Props {
-  next: () => void;
-  prev: () => void;
-  className?: string;
+interface PictureProps {
   images: File[];
-  setImages: React.Dispatch<React.SetStateAction<File[]>>;
+  setImages: (images: File[]) => void;
+  deletedImages: number[];
+  setDeletedImages: (ids: number[]) => void;
+  existingImages?: PropertyImage[];
+  setExistingImages?: Dispatch<SetStateAction<PropertyImage[]>>;
+  className?: string;
+  next?: () => void;
+  prev?: () => void;
   savedImagesUrl?: PropertyImage[];
   setSavedImageUrl?: React.Dispatch<React.SetStateAction<PropertyImage[]>>;
 }
+
+type UnifiedImage = {
+  id: string;
+  url: string;
+  type: "existing" | "new";
+  originalData: PropertyImage | File;
+  order: number;
+};
 
 const Picture = ({
   setSavedImageUrl,
@@ -26,27 +45,108 @@ const Picture = ({
   className,
   next,
   prev,
-}: Props) => {
+  deletedImages,
+  setDeletedImages,
+  existingImages = [],
+  setExistingImages,
+}: PictureProps) => {
   const {
     register,
     formState: { errors },
     getValues,
   } = useFormContext<AddPropertyInputType>();
 
-  const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files || []);
-      setImages((prev) => [...files, ...prev]);
-    },
-    [setImages]
-  );
+  // Initialize unified images with order
+  const [unifiedImages, setUnifiedImages] = useState<UnifiedImage[]>(() => {
+    const existing =
+      existingImages?.map((img, idx) => ({
+        id: `existing-${img.id}`,
+        url: img.url,
+        type: "existing" as const,
+        originalData: img,
+        order: idx,
+      })) || [];
 
-  const handleDelete = useCallback(
-    (index: number) => {
-      setImages((prev) => prev.filter((_, i) => i !== index));
-    },
-    [setImages]
-  );
+    const newImages = images.map((file, idx) => ({
+      id: `new-${idx}`,
+      url:
+        file instanceof File
+          ? URL.createObjectURL(file)
+          : typeof file === "string"
+          ? file
+          : (file as any).url || "",
+      type: "new" as const,
+      originalData: file,
+      order: existing.length + idx,
+    }));
+
+    return [...existing, ...newImages];
+  });
+
+  // Update unified images when props change
+  useEffect(() => {
+    const existing =
+      existingImages
+        ?.filter((img) => !deletedImages.includes(img.id))
+        .map((img, idx) => ({
+          id: `existing-${img.id}`,
+          url: img.url,
+          type: "existing" as const,
+          originalData: img,
+          order: idx,
+        })) || [];
+
+    const newImages = images.map((file, idx) => ({
+      id: `new-${idx}`,
+      url:
+        file instanceof File
+          ? URL.createObjectURL(file)
+          : typeof file === "string"
+          ? file
+          : (file as any).url || "",
+      type: "new" as const,
+      originalData: file,
+      order: existing.length + idx,
+    }));
+
+    setUnifiedImages([...existing, ...newImages]);
+
+    // Cleanup URLs
+    return () => {
+      newImages.forEach((img) => {
+        if (img.url.startsWith("blob:")) {
+          URL.revokeObjectURL(img.url);
+        }
+      });
+    };
+  }, [existingImages, images, deletedImages]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newFiles = Array.from(files);
+    setImages([...images, ...newFiles]);
+  };
+
+  const handleDelete = (
+    index: number,
+    imageId?: number,
+    e?: React.MouseEvent
+  ) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    if (imageId !== undefined) {
+      // Handle existing image deletion
+      setDeletedImages([...deletedImages, imageId]);
+    } else {
+      // Handle new image deletion
+      const newImages = [...images];
+      newImages.splice(index, 1);
+      setImages(newImages);
+    }
+  };
 
   const handleSavedDelete = useCallback(
     (id: number) => {
@@ -55,68 +155,106 @@ const Picture = ({
     [setSavedImageUrl]
   );
 
-  const moveImage = useCallback(
-    (fromIndex: number, toIndex: number) => {
-      setImages((prev) => {
-        const newImages = [...prev];
-        const [movedImage] = newImages.splice(fromIndex, 1);
-        newImages.splice(toIndex, 0, movedImage);
-        return newImages;
-      });
-    },
-    [setImages]
-  );
+  const moveImage = async (
+    fromIndex: number,
+    toIndex: number,
+    e: React.MouseEvent
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-  const moveSavedImage = useCallback(
-    (fromIndex: number, toIndex: number) => {
-      setSavedImageUrl?.((prev) => {
-        const newImages = [...prev];
-        const [movedImage] = newImages.splice(fromIndex, 1);
-        newImages.splice(toIndex, 0, movedImage);
-        return newImages;
+    try {
+      // Simple array move for unified images
+      const currentImages = [...unifiedImages];
+      const [movedImage] = currentImages.splice(fromIndex, 1);
+      currentImages.splice(toIndex, 0, movedImage);
+
+      // Update orders based on new positions
+      const updatedImages = currentImages.map((img, idx) => ({
+        ...img,
+        order: idx,
+        originalData:
+          img.type === "existing"
+            ? { ...(img.originalData as PropertyImage), order: idx }
+            : img.originalData,
+      }));
+
+      // Update unified images
+      setUnifiedImages(updatedImages);
+
+      // Update existing images with new orders
+      const existingWithNewOrders = updatedImages
+        .filter((img) => img.type === "existing")
+        .map((img) => img.originalData as PropertyImage);
+
+      if (existingImages && existingWithNewOrders.length > 0) {
+        const activeExisting = existingWithNewOrders.filter(
+          (img) => !deletedImages.includes(img.id)
+        );
+        setExistingImages?.(activeExisting);
+      }
+
+      // Update new images array
+      const newUploaded = updatedImages
+        .filter((img) => img.type === "new")
+        .map((img) => img.originalData as File);
+      setImages(newUploaded);
+    } catch (error) {
+      console.error("Error during image move:", error);
+    }
+  };
+
+  // Create URLs for new images
+  const imageUrls = useMemo(() => {
+    return images.map((file) => {
+      if (file instanceof File) {
+        return URL.createObjectURL(file);
+      }
+      return ""; // Return empty string for invalid files
+    });
+  }, [images]);
+
+  // Cleanup URLs when component unmounts or images change
+  useEffect(() => {
+    return () => {
+      imageUrls.forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
       });
-    },
-    [setSavedImageUrl]
-  );
+    };
+  }, [imageUrls]);
 
   return (
-    <Card className={cn("p-3", className)}>
+    <Card className={cn("p-6", className)}>
       <FileInput multiple={true} onSelect={handleFileSelect} />
-
-      <div className="flex gap-3 flex-wrap mt-8 mb-4 justify-center">
-        {savedImagesUrl?.map((image, index) => (
-          <PictureCard
-            key={image.id}
-            src={image.url}
-            index={index}
-            onDelete={() => handleSavedDelete(Number(image.id))}
-            onMoveLeft={
-              index > 0 ? () => moveSavedImage(index, index - 1) : undefined
-            }
-            onMoveRight={
-              index < savedImagesUrl.length - 1
-                ? () => moveSavedImage(index, index + 1)
-                : undefined
-            }
-          />
-        ))}
-
-        {images.map((image, index) => (
-          <PictureCard
-            key={index}
-            src={URL.createObjectURL(image)}
-            index={index}
-            onDelete={() => handleDelete(index)}
-            onMoveLeft={
-              index > 0 ? () => moveImage(index, index - 1) : undefined
-            }
-            onMoveRight={
-              index < images.length - 1
-                ? () => moveImage(index, index + 1)
-                : undefined
-            }
-          />
-        ))}
+      <div className="grid grid-cols-2 gap-4" aria-label="Property Images Grid">
+        <div
+          className="flex flex-wrap gap-4"
+          aria-label="Property Images Container"
+        >
+          {unifiedImages.map((image, index) => (
+            <PictureCard
+              key={image.id}
+              src={image.url}
+              index={index}
+              onDelete={() => {
+                if (image.type === "existing") {
+                  const originalImage = image.originalData as PropertyImage;
+                  setDeletedImages([...deletedImages, originalImage.id]);
+                }
+                const newImages = unifiedImages.filter((_, i) => i !== index);
+                setUnifiedImages(newImages);
+              }}
+              onMoveLeft={
+                index > 0 ? (e) => moveImage(index, index - 1, e) : undefined
+              }
+              onMoveRight={
+                index < unifiedImages.length - 1
+                  ? (e) => moveImage(index, index + 1, e)
+                  : undefined
+              }
+            />
+          ))}
+        </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-y-4">
