@@ -64,7 +64,7 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            path: `/property/${propertyId.toString()}`,
+            path: `/portfoy/${propertyId.toString()}`,
             token: process.env.NEXT_PUBLIC_REVALIDATE_TOKEN,
           }),
         });

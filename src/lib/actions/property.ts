@@ -299,3 +299,43 @@ export async function uploadImages(images: File[]) {
     throw error;
   }
 }
+
+export async function getPropertyById(id: string) {
+  return prisma.property.findUnique({
+    where: { id: parseInt(id) },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      price: true,
+      discountedPrice: true,
+      feature: true,
+      agent: true,
+      images: true,
+      status: true,
+      type: true,
+      contract: true,
+      createdAt: true,
+      updatedAt: true,
+      location: {
+        select: {
+          city: true,
+          district: true,
+          neighborhood: true,
+          latitude: true,
+          longitude: true,
+          streetAddress: true,
+          zip: true,
+          country: true,
+          state: true,
+          landmark: true,
+        },
+      },
+      descriptors: {
+        include: {
+          descriptor: true,
+        },
+      },
+    },
+  });
+}
