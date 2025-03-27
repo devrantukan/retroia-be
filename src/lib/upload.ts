@@ -7,22 +7,38 @@ export async function uploadImages(images: File[]) {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const data = await Promise.all(
-    images.map((file) =>
-      supabase.storage
-        .from("propertyImages")
-        .upload(`${file.name}_${Date.now()}`, file)
-    )
-  );
+  try {
+    const uploadPromises = images.map(async (file) => {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2)}.${fileExt}`;
+      const filePath = fileName;
 
-  const urls = data.map(
-    (item) =>
-      supabase.storage
+      const { data, error } = await supabase.storage
         .from("propertyImages")
-        .getPublicUrl(item.data?.path ?? "").data.publicUrl
-  );
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
 
-  return urls;
+      if (error) {
+        console.error("Error uploading file:", error);
+        throw error;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("propertyImages")
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    });
+
+    return await Promise.all(uploadPromises);
+  } catch (error) {
+    console.error("Error uploading images:", error);
+    throw error;
+  }
 }
 
 export async function uploadAvatar(image: File, name: string, surname: string) {

@@ -41,6 +41,7 @@ const PropertiesPage = async ({ searchParams }: Props) => {
       type: true,
       status: true,
       images: true,
+      agent: true,
     },
     skip: Math.max(0, pagenum * PAGE_SIZE),
     take: PAGE_SIZE,

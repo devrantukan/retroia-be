@@ -6,6 +6,7 @@ import Appbar from "./components/Appbar";
 import SignInPanel from "./components/signInPanel";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "react-image-crop/dist/ReactCrop.css";
 
 const inter = Inter({ subsets: ["latin"] });
 

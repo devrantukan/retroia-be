@@ -25,6 +25,7 @@ type Props = {
       status: true;
       images: true;
       type: true;
+      agent: true;
     };
   }>[];
   totalPages: number;
@@ -150,7 +151,6 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
       key: "publishingStatus",
       label: "Yayın Durumu",
       render: (property: any) => {
-        //  console.log("Property publishing status:", property.publishingStatus);
         const isPublished = property.publishingStatus === "PUBLISHED";
         return (
           <TableCell>
@@ -170,6 +170,33 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
           </TableCell>
         );
       },
+    },
+    {
+      key: "agent",
+      label: "DANIŞMAN",
+      render: (property: any) => (
+        <TableCell>
+          {property.agent?.name} {property.agent?.surname}
+        </TableCell>
+      ),
+    },
+    {
+      key: "createdAt",
+      label: "OLUŞTURMA TARİHİ",
+      render: (property: any) => (
+        <TableCell className="text-center">
+          {new Date(property.createdAt).toLocaleDateString("tr-TR")}
+        </TableCell>
+      ),
+    },
+    {
+      key: "updatedAt",
+      label: "SON GÜNCELLEME TARİHİ",
+      render: (property: any) => (
+        <TableCell className="text-center">
+          {new Date(property.updatedAt).toLocaleDateString("tr-TR")}
+        </TableCell>
+      ),
     },
     {
       key: "actions",
@@ -207,6 +234,11 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
           <TableColumn className="text-center">TİP</TableColumn>
           <TableColumn className="text-center">DURUM</TableColumn>
           <TableColumn className="text-center">YAYIN DURUMU</TableColumn>
+          <TableColumn className="text-left">DANIŞMAN</TableColumn>
+          <TableColumn className="text-center">OLUŞTURMA TARİHİ</TableColumn>
+          <TableColumn className="text-center">
+            SON GÜNCELLEME TARİHİ
+          </TableColumn>
           <TableColumn className="text-right">İŞLEMLER</TableColumn>
         </TableHeader>
         <TableBody>
@@ -238,18 +270,4 @@ type Props2 = {
   }>[];
   totalPages: number;
   currentPage: number;
-};
-
-// Update the data fetching to include publishingStatus
-const fetchProperties = async (page: number) => {
-  try {
-    const response = await fetch(
-      `/api/properties?page=${page}&limit=10&include=publishingStatus`
-    );
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching properties:", error);
-    return null;
-  }
 };

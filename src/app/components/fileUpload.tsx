@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { toast } from "react-toastify";
+import Image from "next/image";
+import { createClient } from "@supabase/supabase-js";
 
 interface IProps extends React.InputHTMLAttributes<HTMLInputElement> {
   children?: React.ReactNode;
@@ -7,6 +10,11 @@ interface IProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   multiple?: boolean;
 }
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const FileInput = React.forwardRef<HTMLInputElement, IProps>(
   (
@@ -23,17 +31,219 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
     ref
   ) => {
     const [fileName, setFileName] = useState("");
+    const imageRef = useRef<HTMLImageElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    function fileChangedHandler(e: React.ChangeEvent<HTMLInputElement>) {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        setFileName(
-          multiple ? `${files.length} files selected` : files[0].name
+    const generateFileName = (originalName: string): string => {
+      // Get file extension
+      const extension = originalName.split(".").pop()?.toLowerCase() || "jpg";
+
+      // Create timestamp
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .replace("T", "_")
+        .split(".")[0];
+
+      // Generate random string
+      const randomStr = Math.random().toString(36).substring(2, 8);
+
+      // Create clean name without propertyImages prefix since it's already in the path
+      return `${timestamp}_${randomStr}.${extension}`;
+    };
+
+    const createImageVersion = async (
+      img: HTMLImageElement,
+      width: number,
+      height: number
+    ): Promise<Blob> => {
+      return new Promise((resolve) => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(new Blob());
+
+        // Set canvas dimensions
+        canvas.width = width;
+        canvas.height = height;
+
+        // Calculate scaling to ensure width matches target
+        const scale = width / img.width;
+        const scaledHeight = img.height * scale;
+
+        // Calculate position to center vertically
+        const y = (height - scaledHeight) / 2;
+
+        // Fill background with white to prevent transparency
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw the scaled image
+        ctx.drawImage(img, 0, y, width, scaledHeight);
+
+        // Convert to blob
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              resolve(new Blob());
+            }
+          },
+          "image/jpeg",
+          0.95
         );
-        onChange?.(e);
-        onSelect?.(e);
+      });
+    };
+
+    const uploadToBucket = async (
+      file: Blob,
+      fileName: string,
+      bucket: string
+    ): Promise<string> => {
+      try {
+        console.log(`Attempting to upload to ${bucket}:`, {
+          fileName,
+          fileSize: file.size,
+          fileType: file.type,
+        });
+
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, file, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: "image/jpeg",
+          });
+
+        if (error) {
+          console.error(`Error uploading to ${bucket}:`, {
+            error,
+            fileName,
+            bucket,
+          });
+          throw error;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(fileName);
+
+        console.log(`Successfully uploaded to ${bucket}:`, urlData.publicUrl);
+        return urlData.publicUrl;
+      } catch (error) {
+        console.error(`Failed to upload to ${bucket}:`, error);
+        throw error;
       }
-    }
+    };
+
+    const processAndUploadImage = async (file: File): Promise<File | null> => {
+      return new Promise((resolve) => {
+        const img = document.createElement("img");
+        img.onload = async () => {
+          try {
+            console.log("Processing image:", {
+              originalSize: file.size,
+              originalType: file.type,
+              dimensions: `${img.width}x${img.height}`,
+            });
+
+            // Generate base filename
+            const baseFileName = generateFileName(file.name);
+            const fileNameWithoutExt = baseFileName.split(".")[0];
+
+            // Create and upload original version
+            const originalBlob = new Blob([file], { type: file.type });
+            await uploadToBucket(originalBlob, baseFileName, "propertyImages");
+
+            // Create and upload 1920x1080 version
+            const largeBlob = await createImageVersion(img, 1920, 1080);
+            await uploadToBucket(largeBlob, baseFileName, "property-images");
+
+            // Create and upload thumbnail version (400px width)
+            const thumbnailBlob = await createImageVersion(img, 400, 225);
+            await uploadToBucket(
+              thumbnailBlob,
+              baseFileName,
+              "thumbnails-property-images"
+            );
+
+            // Return the original file for the form
+            resolve(file);
+          } catch (error: any) {
+            console.error("Error processing image:", {
+              error,
+              fileName: file.name,
+              fileSize: file.size,
+            });
+            toast.error(`Görüntü yüklenirken hata oluştu: ${error.message}`);
+            resolve(null);
+          }
+        };
+
+        img.onerror = (error) => {
+          console.error("Error loading image:", error);
+          toast.error("Görüntü yüklenirken hata oluştu");
+          resolve(null);
+        };
+
+        img.src = URL.createObjectURL(file);
+      });
+    };
+
+    const fileChangedHandler = async (
+      event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      event.preventDefault();
+      const files = event.target.files;
+      if (!files) return;
+
+      const validFiles = Array.from(files).filter((file) =>
+        ["image/jpeg", "image/png"].includes(file.type)
+      );
+
+      if (validFiles.length !== files.length) {
+        toast.error("Sadece JPEG ve PNG dosyaları yüklenebilir");
+        return;
+      }
+
+      try {
+        console.log("Starting to process files:", validFiles.length);
+        const processedFiles = await Promise.all(
+          validFiles.map(async (file) => {
+            const processedFile = await processAndUploadImage(file);
+            return processedFile;
+          })
+        );
+
+        const validProcessedFiles = processedFiles.filter(
+          (file): file is File => file !== null
+        );
+
+        if (validProcessedFiles.length > 0) {
+          const dataTransfer = new DataTransfer();
+          validProcessedFiles.forEach((file) => dataTransfer.items.add(file));
+
+          const newEvent = {
+            target: {
+              files: dataTransfer.files,
+            },
+          } as unknown as React.ChangeEvent<HTMLInputElement>;
+
+          if (onSelect) onSelect(newEvent);
+          if (onChange) onChange(newEvent);
+
+          setFileName(validProcessedFiles.map((f) => f.name).join(", "));
+          toast.success(
+            `${validProcessedFiles.length} görüntü başarıyla yüklendi`
+          );
+        } else {
+          toast.error("Hiçbir görüntü yüklenemedi");
+        }
+      } catch (error) {
+        console.error("Error processing images:", error);
+        toast.error("Görüntüler işlenirken bir hata oluştu");
+      }
+    };
 
     return (
       <div className={className}>
@@ -54,7 +264,7 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
               {...props}
               type="file"
               multiple={multiple}
-              accept="image/*"
+              accept="image/jpeg, image/png"
             />
             Dosya Yükle
           </div>

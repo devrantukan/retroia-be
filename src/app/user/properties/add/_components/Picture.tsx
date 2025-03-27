@@ -225,10 +225,10 @@ const Picture = ({
 
   return (
     <Card className={cn("p-6", className)}>
-      <FileInput multiple={true} onSelect={handleFileSelect} />
-      <div className="grid grid-cols-2 gap-4" aria-label="Property Images Grid">
+      <FileInput multiple={true} onSelect={handleFileSelect} className="mb-6" />
+      <div className="grid grid-cols-1 gap-4" aria-label="Property Images Grid">
         <div
-          className="flex flex-wrap gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           aria-label="Property Images Container"
         >
           {unifiedImages.map((image, index) => (

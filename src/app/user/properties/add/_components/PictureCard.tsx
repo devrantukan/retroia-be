@@ -20,12 +20,13 @@ const PictureCard = ({
   onMoveRight,
 }: PictureCardProps) => {
   return (
-    <div className="relative group w-40 h-40">
+    <div className="relative group w-full aspect-video">
       <Image
         src={src}
         alt={`Image ${index + 1}`}
         fill
         className="object-cover rounded-lg"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
       <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
         <div className="flex items-center gap-2">
