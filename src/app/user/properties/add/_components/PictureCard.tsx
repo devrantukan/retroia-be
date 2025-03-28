@@ -21,10 +21,31 @@ const PictureCard = ({
   onMoveRight,
   isLoading = false,
 }: PictureCardProps) => {
-  // Handle both direct URLs and blob URLs
-  const imageUrl = src.startsWith("blob:")
-    ? src
-    : src.replace("/propertyImages/", "/thumbnails-property-images/");
+  // Handle different types of URLs
+  const getImageUrl = (url: string) => {
+    if (url.startsWith("blob:")) {
+      return url;
+    }
+
+    // If it's already a thumbnail URL, return as is
+    if (url.includes("/thumbnails-property-images/")) {
+      return url;
+    }
+
+    // If it's a property image URL, convert to thumbnail
+    if (url.includes("/propertyImages/")) {
+      return url.replace("/propertyImages/", "/thumbnails-property-images/");
+    }
+
+    // If it's a property-images URL, convert to thumbnail
+    if (url.includes("/property-images/")) {
+      return url.replace("/property-images/", "/thumbnails-property-images/");
+    }
+
+    return url;
+  };
+
+  const imageUrl = getImageUrl(src);
 
   return (
     <div className="relative group w-full aspect-video">
