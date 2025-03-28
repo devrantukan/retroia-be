@@ -10,6 +10,7 @@ interface PictureCardProps {
   onDelete?: (e: React.MouseEvent) => void;
   onMoveLeft?: (e: React.MouseEvent) => void;
   onMoveRight?: (e: React.MouseEvent) => void;
+  isLoading?: boolean;
 }
 
 const PictureCard = ({
@@ -18,16 +19,29 @@ const PictureCard = ({
   onDelete,
   onMoveLeft,
   onMoveRight,
+  isLoading = false,
 }: PictureCardProps) => {
+  // Convert the URL to use thumbnail version
+  const thumbnailUrl = src.replace(
+    "/propertyImages/",
+    "/thumbnails-property-images/"
+  );
+
   return (
     <div className="relative group w-full aspect-video">
-      <Image
-        src={src}
-        alt={`Image ${index + 1}`}
-        fill
-        className="object-cover rounded-lg"
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-      />
+      {isLoading ? (
+        <div className="absolute inset-0 bg-gray-100 rounded-lg flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary-500 border-t-transparent"></div>
+        </div>
+      ) : (
+        <Image
+          src={thumbnailUrl}
+          alt={`Image ${index + 1}`}
+          fill
+          className="object-cover rounded-lg"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+      )}
       <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
         <div className="flex items-center gap-2">
           <button

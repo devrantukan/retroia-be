@@ -35,6 +35,7 @@ type UnifiedImage = {
   type: "existing" | "new";
   originalData: PropertyImage | File;
   order: number;
+  isLoading?: boolean;
 };
 
 const Picture = ({
@@ -121,12 +122,76 @@ const Picture = ({
     };
   }, [existingImages, images, deletedImages]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
+    setIsUploading(true);
     const newFiles = Array.from(files);
-    setImages([...images, ...newFiles]);
+
+    // Add new files with loading state
+    const newUnifiedImages = newFiles.map((file, idx) => ({
+      id: `new-${Date.now()}-${idx}`,
+      url: URL.createObjectURL(file),
+      type: "new" as const,
+      originalData: file,
+      order: unifiedImages.length + idx,
+      isLoading: true,
+    }));
+
+    // Update unified images with loading state, filtering out deleted images
+    setUnifiedImages((prev) => {
+      const activeImages = prev.filter((img) => {
+        if (img.type === "existing") {
+          const originalImage = img.originalData as PropertyImage;
+          return !deletedImages.includes(originalImage.id);
+        }
+        return true;
+      });
+      return [...activeImages, ...newUnifiedImages];
+    });
+
+    // Process files
+    try {
+      // Simulate file processing delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Update images array
+      setImages([...images, ...newFiles]);
+
+      // Remove loading state and filter out deleted images
+      setUnifiedImages((prev) => {
+        const activeImages = prev.filter((img) => {
+          if (img.type === "existing") {
+            const originalImage = img.originalData as PropertyImage;
+            return !deletedImages.includes(originalImage.id);
+          }
+          return true;
+        });
+        return activeImages.map((img) =>
+          newUnifiedImages.some((newImg) => newImg.id === img.id)
+            ? { ...img, isLoading: false }
+            : img
+        );
+      });
+    } catch (error) {
+      console.error("Error processing files:", error);
+      // Remove failed uploads and filter out deleted images
+      setUnifiedImages((prev) => {
+        const activeImages = prev.filter((img) => {
+          if (img.type === "existing") {
+            const originalImage = img.originalData as PropertyImage;
+            return !deletedImages.includes(originalImage.id);
+          }
+          return true;
+        });
+        return activeImages.filter(
+          (img) => !newUnifiedImages.some((newImg) => newImg.id === img.id)
+        );
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDelete = (
@@ -223,8 +288,19 @@ const Picture = ({
     };
   }, [imageUrls]);
 
+  const [isUploading, setIsUploading] = useState(false);
+
   return (
     <Card className={cn("p-6", className)}>
+      {isUploading && (
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center">
+          <div className="bg-white p-8 rounded-lg shadow-xl flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary-500 border-t-transparent"></div>
+            <p className="text-xl font-semibold">Görüntüler Yükleniyor...</p>
+            <p className="text-sm text-gray-500">Lütfen bekleyin</p>
+          </div>
+        </div>
+      )}
       <FileInput multiple={true} onSelect={handleFileSelect} className="mb-6" />
       <div className="grid grid-cols-1 gap-4" aria-label="Property Images Grid">
         <div
@@ -236,13 +312,18 @@ const Picture = ({
               key={image.id}
               src={image.url}
               index={index}
+              isLoading={image.isLoading}
               onDelete={() => {
                 if (image.type === "existing") {
                   const originalImage = image.originalData as PropertyImage;
                   setDeletedImages([...deletedImages, originalImage.id]);
+                } else {
+                  // Handle new image deletion
+                  const newImages = images.filter((_, i) => i !== index);
+                  setImages(newImages);
                 }
-                const newImages = unifiedImages.filter((_, i) => i !== index);
-                setUnifiedImages(newImages);
+                // Update unified images by filtering out the deleted image
+                setUnifiedImages((prev) => prev.filter((_, i) => i !== index));
               }}
               onMoveLeft={
                 index > 0 ? (e) => moveImage(index, index - 1, e) : undefined
