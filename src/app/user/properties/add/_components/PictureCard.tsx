@@ -23,23 +23,24 @@ const PictureCard = ({
 }: PictureCardProps) => {
   // Handle different types of URLs
   const getImageUrl = (url: string) => {
+    // If it's a blob URL (new upload), return as is
     if (url.startsWith("blob:")) {
       return url;
     }
 
-    // If it's already a thumbnail URL, return as is
-    if (url.includes("/thumbnails-property-images/")) {
+    // If it's already a propertyImages URL, return as is
+    if (url.includes("/propertyImages/")) {
       return url;
     }
 
-    // If it's a property image URL, convert to thumbnail
-    if (url.includes("/propertyImages/")) {
-      return url.replace("/propertyImages/", "/thumbnails-property-images/");
+    // If it's a property-images URL, convert to propertyImages
+    if (url.includes("/property-images/")) {
+      return url.replace("/property-images/", "/propertyImages/");
     }
 
-    // If it's a property-images URL, convert to thumbnail
-    if (url.includes("/property-images/")) {
-      return url.replace("/property-images/", "/thumbnails-property-images/");
+    // If it's a filename without path, construct the full URL with propertyImages
+    if (!url.includes("/")) {
+      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/propertyImages/${url}`;
     }
 
     return url;

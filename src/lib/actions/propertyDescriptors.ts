@@ -9,7 +9,7 @@ export async function getPropertyDescriptors() {
       slug: true,
     },
   });
-  console.log(descriptors);
+  //  console.log(descriptors);
 
   return Object.fromEntries(
     descriptors.map((descriptor) => [

@@ -48,7 +48,7 @@ export async function manageDescriptorData(
         });
       })
   );
-  console.log(updateData);
+  //console.log(updateData);
   return { updateData };
 }
 export async function saveProperty(

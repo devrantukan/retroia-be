@@ -70,12 +70,7 @@ const Picture = ({
 
     const newImages = images.map((file, idx) => ({
       id: `new-${idx}`,
-      url:
-        file instanceof File
-          ? URL.createObjectURL(file)
-          : typeof file === "string"
-          ? file
-          : (file as any).url || "",
+      url: file instanceof File ? URL.createObjectURL(file) : file,
       type: "new" as const,
       originalData: file,
       order: existing.length + idx,
@@ -99,12 +94,7 @@ const Picture = ({
 
     const newImages = images.map((file, idx) => ({
       id: `new-${idx}`,
-      url:
-        file instanceof File
-          ? URL.createObjectURL(file)
-          : typeof file === "string"
-          ? file
-          : (file as any).url || "",
+      url: file instanceof File ? URL.createObjectURL(file) : file,
       type: "new" as const,
       originalData: file,
       order: existing.length + idx,

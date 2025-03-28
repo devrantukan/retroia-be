@@ -242,8 +242,8 @@ const PropertiesTable = ({ properties, totalPages, currentPage }: Props) => {
           <TableColumn className="text-right">İŞLEMLER</TableColumn>
         </TableHeader>
         <TableBody>
-          {properties.map((item, index) => (
-            <TableRow key={index}>
+          {properties.map((item) => (
+            <TableRow key={item.id}>
               {columns.map((column) => column.render(item))}
             </TableRow>
           ))}
