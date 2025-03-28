@@ -21,11 +21,10 @@ const PictureCard = ({
   onMoveRight,
   isLoading = false,
 }: PictureCardProps) => {
-  // Convert the URL to use thumbnail version
-  const thumbnailUrl = src.replace(
-    "/propertyImages/",
-    "/thumbnails-property-images/"
-  );
+  // Handle both direct URLs and blob URLs
+  const imageUrl = src.startsWith("blob:")
+    ? src
+    : src.replace("/propertyImages/", "/thumbnails-property-images/");
 
   return (
     <div className="relative group w-full aspect-video">
@@ -35,11 +34,13 @@ const PictureCard = ({
         </div>
       ) : (
         <Image
-          src={thumbnailUrl}
+          src={imageUrl}
           alt={`Image ${index + 1}`}
           fill
           className="object-cover rounded-lg"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          unoptimized={src.startsWith("blob:")}
+          priority={index < 3}
         />
       )}
       <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
