@@ -1,6 +1,6 @@
 "use client";
-import { TrashIcon } from "@heroicons/react/16/solid";
-import { EyeIcon, PencilIcon } from "@heroicons/react/16/solid";
+import { ShareIcon } from "@heroicons/react/16/solid";
+import { EyeIcon } from "@heroicons/react/16/solid";
 import {
   Pagination,
   Table,
@@ -10,17 +10,14 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
-  Switch,
 } from "@nextui-org/react";
 import { Prisma, Property } from "@prisma/client";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { updatePublishingStatus } from "@/app/actions/updatePropertyStatus";
 import { toast } from "react-toastify";
 import { Input } from "@nextui-org/input";
 import { MagnifyingGlassIcon } from "@heroicons/react/16/solid";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 type Props = {
   properties: Prisma.PropertyGetPayload<{
@@ -35,6 +32,10 @@ type Props = {
   currentPage: number;
   totalCount: number;
   searchTerm: string;
+  user: {
+    officeWorkerId: number;
+    slug: string;
+  };
 };
 
 const PropertiesTable = ({
@@ -42,97 +43,33 @@ const PropertiesTable = ({
   totalPages,
   currentPage,
   totalCount,
-  searchTerm: initialSearchTerm,
+  searchTerm,
+  user,
 }: Props) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
-
-  // Update search term when initialSearchTerm changes
-  useEffect(() => {
-    setSearchTerm(initialSearchTerm);
-  }, [initialSearchTerm]);
+  const [searchValue, setSearchValue] = useState(searchTerm);
 
   const handleSearch = (value: string) => {
-    setSearchTerm(value);
+    setSearchValue(value);
     const params = new URLSearchParams(searchParams.toString());
-    params.set("search", value);
-    params.set("pagenum", "1"); // Reset to first page when searching
-    router.push(`/user/properties?${params.toString()}`);
+    if (value) {
+      params.set("search", value);
+    } else {
+      params.delete("search");
+    }
+    params.set("pagenum", "0");
+    router.push(`/user/property-share?${params.toString()}`);
   };
 
-  const handlePublishChange = async (
-    propertyId: number,
-    isPublished: boolean
-  ) => {
+  const handleShare = async (propertyId: number) => {
     try {
-      console.log(
-        "Updating status for property:",
-        propertyId,
-        "to:",
-        isPublished ? "PUBLISHED" : "PENDING"
-      );
-
-      const result = await updatePublishingStatus(
-        propertyId.toString(),
-        isPublished ? "PUBLISHED" : "PENDING"
-      );
-
-      if (!result) {
-        throw new Error("Failed to update status");
-      }
-
-      // Revalidate the property page after status change
-      try {
-        const response = await fetch(process.env.NEXT_PUBLIC_REVALIDATE_URL!, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            path: `/portfoy/${propertyId.toString()}`,
-            token: process.env.NEXT_PUBLIC_REVALIDATE_TOKEN,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error("Revalidation failed:", await response.text());
-          throw new Error("Revalidation failed");
-        }
-
-        const revalidateHome = await fetch(
-          process.env.NEXT_PUBLIC_REVALIDATE_URL!,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              path: `/`,
-              token: process.env.NEXT_PUBLIC_REVALIDATE_TOKEN,
-            }),
-          }
-        );
-
-        if (!revalidateHome.ok) {
-          console.error(
-            "Home revalidation failed:",
-            await revalidateHome.text()
-          );
-          throw new Error("Home revalidation failed");
-        }
-      } catch (revalidateError) {
-        console.error("Revalidation error:", revalidateError);
-        // Don't throw here, just log the error
-      }
-
-      toast.success(
-        isPublished ? "İlan yayınlandı!" : "İlan yayından kaldırıldı!"
-      );
-      router.refresh();
+      const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/emlak/portfoy/${propertyId}/${user.officeWorkerId}/${user.slug}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("İlan linki kopyalandı!");
     } catch (error) {
-      console.error("Error updating property status:", error);
-      toast.error("Bir hata oluştu!");
+      console.error("Error copying to clipboard:", error);
+      toast.error("Link kopyalanırken bir hata oluştu!");
     }
   };
 
@@ -173,30 +110,6 @@ const PropertiesTable = ({
       ),
     },
     {
-      key: "publishingStatus",
-      label: "Yayın Durumu",
-      render: (property: any) => {
-        const isPublished = property.publishingStatus === "PUBLISHED";
-        return (
-          <TableCell>
-            <div className="flex items-center gap-2">
-              <span className={isPublished ? "text-success" : "text-warning"}>
-                {isPublished ? "Yayında" : "Beklemede"}
-              </span>
-              <Switch
-                isSelected={isPublished}
-                onValueChange={(checked) =>
-                  handlePublishChange(property.id, checked)
-                }
-                size="sm"
-                color="success"
-              />
-            </div>
-          </TableCell>
-        );
-      },
-    },
-    {
       key: "agent",
       label: "DANIŞMAN",
       render: (property: any) => (
@@ -234,15 +147,10 @@ const PropertiesTable = ({
                 <EyeIcon className="w-5 text-slate-500" />
               </Link>
             </Tooltip>
-            <Tooltip content="İlanı Düzenle" color="warning">
-              <Link href={`/user/properties/${property.id}/edit`}>
-                <PencilIcon className="w-5 text-yellow-500" />
-              </Link>
-            </Tooltip>
-            <Tooltip content="İlanı Sil" color="danger">
-              <Link href={`/user/properties/${property.id}/delete`}>
-                <TrashIcon className="w-5 text-red-500" />
-              </Link>
+            <Tooltip content="İlanı Paylaş">
+              <button onClick={() => handleShare(property.id)}>
+                <ShareIcon className="w-5 text-blue-500" />
+              </button>
             </Tooltip>
           </div>
         </TableCell>
@@ -255,7 +163,7 @@ const PropertiesTable = ({
       <div className="w-full max-w-md mb-4">
         <Input
           placeholder="İlan adı veya danışman adı ile arama yapın..."
-          value={searchTerm}
+          value={searchValue}
           onChange={(e) => handleSearch(e.target.value)}
           startContent={
             <MagnifyingGlassIcon className="w-5 h-5 text-gray-400" />
@@ -264,7 +172,11 @@ const PropertiesTable = ({
         />
       </div>
       <div className="w-full text-sm text-gray-500 mb-4">
-        Toplam {totalCount} kayıt bulundu
+        {searchValue ? (
+          <p>{totalCount} kayıt bulundu</p>
+        ) : (
+          <p>Toplam {totalCount} kayıt</p>
+        )}
       </div>
       <Table>
         <TableHeader>
@@ -272,7 +184,6 @@ const PropertiesTable = ({
           <TableColumn className="text-right">FİYAT</TableColumn>
           <TableColumn className="text-center">TİP</TableColumn>
           <TableColumn className="text-center">DURUM</TableColumn>
-          <TableColumn className="text-center">YAYIN DURUMU</TableColumn>
           <TableColumn className="text-left">DANIŞMAN</TableColumn>
           <TableColumn className="text-center">OLUŞTURMA TARİHİ</TableColumn>
           <TableColumn className="text-center">
@@ -295,7 +206,7 @@ const PropertiesTable = ({
         onChange={(page) => {
           const params = new URLSearchParams(searchParams.toString());
           params.set("pagenum", page.toString());
-          router.push(`/user/properties?${params.toString()}`);
+          router.push(`/user/property-share?${params.toString()}`);
         }}
       />
     </div>
@@ -303,14 +214,3 @@ const PropertiesTable = ({
 };
 
 export default PropertiesTable;
-
-type Props2 = {
-  properties: Prisma.PropertyGetPayload<{
-    include: {
-      type: true;
-      status: true;
-    };
-  }>[];
-  totalPages: number;
-  currentPage: number;
-};

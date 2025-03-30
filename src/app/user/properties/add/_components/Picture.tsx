@@ -116,7 +116,9 @@ const Picture = ({
     const files = e.target.files;
     if (!files) return;
 
+    // Set uploading state immediately
     setIsUploading(true);
+
     const newFiles = Array.from(files);
 
     // Add new files with loading state

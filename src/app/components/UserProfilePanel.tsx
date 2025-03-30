@@ -46,6 +46,13 @@ export default function UserProfilePanel({
           İlan Listesi
         </DropdownItem>
 
+        <DropdownItem
+          key="property-share"
+          onPress={() => router.push("/user/property-share")}
+        >
+          İlan Paylaş
+        </DropdownItem>
+
         {isAdmin ? (
           <DropdownSection title="Admin">
             <DropdownItem

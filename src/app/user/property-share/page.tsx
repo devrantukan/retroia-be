@@ -5,16 +5,16 @@ import PropertiesTable from "./_components/PropertiesTable";
 import { getUserById } from "@/lib/actions/user";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
+
 const PAGE_SIZE = 12;
 
 interface Props {
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
-const PropertiesPage = async ({ searchParams }: Props) => {
+const PropertySharePage = async ({ searchParams }: Props) => {
   const { getUser } = await getKindeServerSession();
   const user = await getUser();
-  console.log("user is:", user);
   if (!user) {
     redirect("/api/auth/login");
   }
@@ -23,7 +23,13 @@ const PropertiesPage = async ({ searchParams }: Props) => {
   const accessToken: any = await getAccessToken();
   const role = accessToken?.roles?.[0]?.key;
 
-  const dbUser = await getUserById(user ? user.id : "");
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    include: {
+      officeWorker: true,
+    },
+  });
+
   if (!dbUser) {
     redirect("/api/auth/login");
   }
@@ -31,9 +37,9 @@ const PropertiesPage = async ({ searchParams }: Props) => {
   const search = (searchParams.search as string) || "";
   const pagenum = +(searchParams.pagenum ?? 1) - 1;
 
-  // Build where clause for search and user role
+  // Build where clause for search
   const where: Prisma.PropertyWhereInput = {
-    ...(role !== "site-admin" ? { userId: dbUser.id } : {}),
+    publishingStatus: "PUBLISHED",
     ...(search
       ? {
           OR: [
@@ -88,7 +94,12 @@ const PropertiesPage = async ({ searchParams }: Props) => {
       currentPage={+pagenum + 1}
       totalCount={totalProperties}
       searchTerm={search}
+      user={{
+        officeWorkerId: dbUser.officeWorker?.id || 0,
+        slug: dbUser.officeWorker?.slug || "",
+      }}
     />
   );
 };
-export default PropertiesPage;
+
+export default PropertySharePage;

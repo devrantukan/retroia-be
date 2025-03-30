@@ -31,7 +31,7 @@ export default async function EditOfficePage({
     },
   });
 
-  console.log("office is:", office);
+  // console.log("office is:", office);
 
   if (!office) {
     redirect("/admin/offices");
