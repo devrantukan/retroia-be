@@ -49,6 +49,34 @@ export async function uploadToSupabase(
   }
 }
 
+export async function uploadProjectImage(file: File, projectName?: string) {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const fileName = projectName
+      ? `${projectName}-${Date.now()}.${fileExt}`
+      : `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+    const { data, error } = await supabase.storage
+      .from("project-images")
+      .upload(fileName, file, {
+        upsert: true,
+        cacheControl: "3600",
+        contentType: file.type,
+      });
+
+    if (error) throw error;
+
+    const { data: urlData } = supabase.storage
+      .from("project-images")
+      .getPublicUrl(fileName);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error uploading project image to Supabase:", error);
+    throw new Error("Failed to upload project image");
+  }
+}
+
 // Optional: Add a delete function if needed
 export async function deleteFromSupabase(url: string) {
   try {

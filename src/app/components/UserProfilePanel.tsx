@@ -103,6 +103,12 @@ export default function UserProfilePanel({
             >
               Lokasyon Yönetimi
             </DropdownItem>
+            <DropdownItem
+              key="admin-projects"
+              onPress={() => router.push("/admin/projects")}
+            >
+              Projeler
+            </DropdownItem>
           </DropdownSection>
         ) : null}
 

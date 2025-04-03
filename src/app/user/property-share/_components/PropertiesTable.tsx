@@ -64,7 +64,7 @@ const PropertiesTable = ({
 
   const handleShare = async (propertyId: number) => {
     try {
-      const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/portfoy/${propertyId}/${user.officeWorkerId}/${user.slug}`;
+      const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/portfoy/${propertyId}/${user.officeWorkerId}/${user.slug}/`;
       await navigator.clipboard.writeText(shareUrl);
       toast.success("İlan linki kopyalandı!");
     } catch (error) {
