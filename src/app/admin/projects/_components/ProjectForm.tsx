@@ -60,11 +60,12 @@ const ProjectForm = ({
     lat: number;
     lng: number;
   } | null>(null);
+  const [selectedAgentNames, setSelectedAgentNames] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     name: project?.name || "",
     description: project?.description || "",
-    officeId: project?.officeId || "",
+    officeId: project?.officeId ? project.officeId.toString() : "",
     assignedAgents: project?.assignedAgents || "",
     publishingStatus: project?.publishingStatus || "DRAFT",
     startDate: project?.startDate
@@ -93,6 +94,47 @@ const ProjectForm = ({
     socialFeatures: project?.socialFeatures || [{ value: "" }],
     images: project?.images || [{ url: "" }],
   });
+
+  // Initialize form data when project changes
+  useEffect(() => {
+    if (project) {
+      console.log("Project assigned agents:", project.assignedAgents);
+
+      setFormData((prev) => ({
+        ...prev,
+        name: project.name || "",
+        description: project.description || "",
+        officeId: project.officeId ? project.officeId.toString() : "",
+        assignedAgents: project.assignedAgents || "",
+        publishingStatus: project.publishingStatus || "DRAFT",
+        startDate: project.startDate
+          ? new Date(project.startDate).toISOString().split("T")[0]
+          : "",
+        endDate: project.endDate
+          ? new Date(project.endDate).toISOString().split("T")[0]
+          : "",
+        deedInfo: project.deedInfo || "",
+        landArea: project.landArea || "",
+        nOfUnits: project.nOfUnits || "",
+        slug: project.slug || "",
+        location: {
+          streetAddress: project.location?.streetAddress || "",
+          city: project.location?.city || "",
+          state: project.location?.state || "",
+          zip: project.location?.zip || "",
+          country: project.location?.country || "",
+          landmark: project.location?.landmark || "",
+          district: project.location?.district || "",
+          neighborhood: project.location?.neighborhood || "",
+          latitude: (project.location as any)?.latitude || 0,
+          longitude: (project.location as any)?.longitude || 0,
+        },
+        unitSizes: project.unitSizes || [{ value: "" }],
+        socialFeatures: project.socialFeatures || [{ value: "" }],
+        images: project.images || [{ url: "" }],
+      }));
+    }
+  }, [project]);
 
   // Initialize location data from project
   useEffect(() => {
@@ -139,6 +181,37 @@ const ProjectForm = ({
       setNeighborhood("");
     }
   }, [district, city]);
+
+  // Update selected agent names when assigned agents change
+  useEffect(() => {
+    if (formData.assignedAgents && agents) {
+      const agentIds = formData.assignedAgents.split(",").filter(Boolean);
+      const names = agentIds
+        .map((id) => {
+          const agent = agents.find((a) => a.id.toString() === id);
+          return agent ? `${agent.name} ${agent.surname}` : "";
+        })
+        .filter(Boolean);
+      setSelectedAgentNames(names);
+    } else {
+      setSelectedAgentNames([]);
+    }
+  }, [formData.assignedAgents, agents]);
+
+  useEffect(() => {
+    console.log("Project data:", project);
+    console.log("Office ID from project:", project?.officeId);
+    console.log("Form data office ID:", formData.officeId);
+    console.log("Offices list:", offices);
+
+    // Check if the office exists in the offices list
+    if (project?.officeId) {
+      const officeExists = offices.some(
+        (office) => office.id === project.officeId
+      );
+      console.log("Office exists in list:", officeExists);
+    }
+  }, [project, formData.officeId, offices]);
 
   async function fetchDistricts(city_slug: string) {
     setIsLoadingDistricts(true);
@@ -231,7 +304,7 @@ const ProjectForm = ({
         ...formData,
         startDate: new Date(formData.startDate),
         endDate: new Date(formData.endDate),
-        officeId: Number(formData.officeId),
+        officeId: formData.officeId ? Number(formData.officeId) : 0,
         publishingStatus: formData.publishingStatus as
           | "DRAFT"
           | "PUBLISHED"
@@ -314,50 +387,70 @@ const ProjectForm = ({
 
         <Select
           label="Ofis"
-          value={formData.officeId.toString()}
-          onChange={(e) =>
+          selectedKeys={formData.officeId ? [formData.officeId] : []}
+          onSelectionChange={(keys) => {
+            const selectedKey = Array.from(keys)[0]?.toString() || "";
             setFormData((prev) => ({
               ...prev,
-              officeId: Number(e.target.value),
+              officeId: selectedKey,
               assignedAgents: "",
-            }))
-          }
+            }));
+          }}
           required
         >
           {offices.map((office) => (
-            <SelectItem key={office.id} value={office.id.toString()}>
+            <SelectItem key={office.id.toString()} value={office.id.toString()}>
               {office.name}
             </SelectItem>
           ))}
         </Select>
 
-        <Select
-          label="Atanmış Danışmanlar"
-          selectedKeys={
-            formData.assignedAgents
-              ? new Set(formData.assignedAgents.split(",").filter(Boolean))
-              : new Set()
-          }
-          onSelectionChange={(keys) => {
-            const selectedIds = Array.from(keys).filter(Boolean);
-            setFormData((prev) => ({
-              ...prev,
-              assignedAgents:
-                selectedIds.length > 0 ? selectedIds.join(",") : "",
-            }));
-          }}
-          selectionMode="multiple"
-          required
-          isDisabled={!formData.officeId}
-        >
-          {agents
-            ?.filter((agent) => agent.officeId === Number(formData.officeId))
-            .map((agent) => (
-              <SelectItem key={agent.id} value={agent.id.toString()}>
-                {agent.name} {agent.surname}
-              </SelectItem>
-            ))}
-        </Select>
+        <div className="space-y-2">
+          <Select
+            label="Atanmış Danışmanlar"
+            selectionMode="multiple"
+            placeholder="Danışman seçin"
+            selectedKeys={
+              formData.assignedAgents
+                ? new Set(formData.assignedAgents.split(",").filter(Boolean))
+                : new Set()
+            }
+            onSelectionChange={(keys) => {
+              const selectedIds = Array.from(keys).filter(Boolean);
+              setFormData((prev) => ({
+                ...prev,
+                assignedAgents:
+                  selectedIds.length > 0 ? selectedIds.join(",") : "",
+              }));
+            }}
+            isDisabled={!formData.officeId}
+            required
+          >
+            {agents
+              ?.filter((agent) => agent.officeId === Number(formData.officeId))
+              .map((agent) => (
+                <SelectItem
+                  key={agent.id.toString()}
+                  value={agent.id.toString()}
+                >
+                  {agent.name} {agent.surname}
+                </SelectItem>
+              ))}
+          </Select>
+
+          {selectedAgentNames.length > 0 && (
+            <div className="mt-2 p-2 bg-gray-100 rounded-md">
+              <p className="text-sm font-medium">Seçilen Danışmanlar:</p>
+              <ul className="mt-1 list-disc list-inside">
+                {selectedAgentNames.map((name, index) => (
+                  <li key={index} className="text-sm">
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
 
         <Input
           label="Başlangıç Tarihi"

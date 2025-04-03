@@ -23,7 +23,7 @@ export default async function EditProjectPage({
     where: { id: Number(params.id) },
     include: {
       location: true,
-      feature: true,
+      office: true,
       unitSizes: true,
       socialFeatures: true,
       images: true,
