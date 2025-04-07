@@ -31,28 +31,41 @@ const PropertiesPage = async ({ searchParams }: Props) => {
   const search = (searchParams.search as string) || "";
   const pagenum = +(searchParams.pagenum ?? 1) - 1;
 
+  // Check if search term is a number
+  const searchNumber = parseInt(search);
+  const isNumericSearch = !isNaN(searchNumber);
+
   // Build where clause for search and user role
   const where: Prisma.PropertyWhereInput = {
     ...(role !== "site-admin" ? { userId: dbUser.id } : {}),
     ...(search
-      ? {
-          OR: [
-            { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            {
-              agent: {
+      ? isNumericSearch
+        ? { id: searchNumber } // For numeric searches, only search by ID
+        : {
+            OR: [
+              {
                 name: { contains: search, mode: Prisma.QueryMode.insensitive },
               },
-            },
-            {
-              agent: {
-                surname: {
-                  contains: search,
-                  mode: Prisma.QueryMode.insensitive,
+              {
+                agent: {
+                  OR: [
+                    {
+                      name: {
+                        contains: search,
+                        mode: Prisma.QueryMode.insensitive,
+                      },
+                    },
+                    {
+                      surname: {
+                        contains: search,
+                        mode: Prisma.QueryMode.insensitive,
+                      },
+                    },
+                  ],
                 },
               },
-            },
-          ],
-        }
+            ],
+          }
       : {}),
   };
 

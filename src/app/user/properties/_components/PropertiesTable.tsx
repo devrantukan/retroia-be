@@ -138,6 +138,13 @@ const PropertiesTable = ({
 
   const columns = [
     {
+      key: "id",
+      label: "ID",
+      render: (property: any) => (
+        <TableCell className="text-left">{property.id}</TableCell>
+      ),
+    },
+    {
       key: "name",
       label: "BAŞLIK",
       render: (property: any) => (
@@ -254,7 +261,7 @@ const PropertiesTable = ({
     <div className="flex flex-col items-center gap-4 w-full mt-8">
       <div className="w-full max-w-md mb-4">
         <Input
-          placeholder="İlan adı veya danışman adı ile arama yapın..."
+          placeholder="İlan adı, danışman adı veya ID ile arama yapın..."
           value={searchTerm}
           onChange={(e) => handleSearch(e.target.value)}
           startContent={
@@ -268,6 +275,7 @@ const PropertiesTable = ({
       </div>
       <Table>
         <TableHeader>
+          <TableColumn className="text-left">ID</TableColumn>
           <TableColumn className="text-left">BAŞLIK</TableColumn>
           <TableColumn className="text-right">FİYAT</TableColumn>
           <TableColumn className="text-center">TİP</TableColumn>

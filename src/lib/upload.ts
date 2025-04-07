@@ -9,40 +9,71 @@ export async function uploadImages(images: File[]) {
 
   try {
     const uploadPromises = images.map(async (file) => {
+      // Use the original filename
       const fileName = file.name;
-      const filePath = fileName;
+      console.log("Using original filename:", fileName);
 
-      try {
-        const { error: deleteError } = await supabase.storage
-          .from("propertyImages")
-          .remove([fileName]);
+      // Function to handle upload to a specific bucket
+      const uploadToBucket = async (bucket: string, file: Blob | File) => {
+        try {
+          // First, try to delete the existing file if it exists
+          try {
+            const { error: deleteError } = await supabase.storage
+              .from(bucket)
+              .remove([fileName]);
 
-        if (deleteError) {
-          console.log(`No existing file to delete:`, fileName);
-        } else {
-          console.log(`Deleted existing file:`, fileName);
+            if (deleteError) {
+              console.log(`No existing file to delete in ${bucket}:`, fileName);
+            } else {
+              console.log(`Deleted existing file from ${bucket}:`, fileName);
+            }
+          } catch (deleteError) {
+            console.log(
+              `Error deleting existing file from ${bucket}:`,
+              deleteError
+            );
+          }
+
+          // Upload the file
+          const { data, error } = await supabase.storage
+            .from(bucket)
+            .upload(fileName, file, {
+              cacheControl: "3600",
+              upsert: true,
+              contentType: "image/jpeg",
+            });
+
+          if (error) {
+            console.error(`Error uploading to ${bucket}:`, error);
+            throw error;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(fileName);
+
+          console.log(`Successfully uploaded to ${bucket}:`, {
+            publicUrl: urlData.publicUrl,
+            fileName,
+          });
+
+          return urlData.publicUrl;
+        } catch (error) {
+          console.error(`Failed to upload to ${bucket}:`, error);
+          throw error;
         }
-      } catch (deleteError) {
-        console.log(`Error deleting existing file:`, deleteError);
-      }
+      };
 
-      const { data, error } = await supabase.storage
-        .from("propertyImages")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: true,
-        });
+      // Upload to all three buckets with the same filename
+      const originalUrl = await uploadToBucket("propertyImages", file);
+      const largeUrl = await uploadToBucket("property-images", file);
+      const thumbnailUrl = await uploadToBucket(
+        "thumbnails-property-images",
+        file
+      );
 
-      if (error) {
-        console.error("Error uploading file:", error);
-        throw error;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from("propertyImages")
-        .getPublicUrl(filePath);
-
-      return urlData.publicUrl;
+      // Return just the URL string for the database
+      return originalUrl;
     });
 
     return await Promise.all(uploadPromises);
