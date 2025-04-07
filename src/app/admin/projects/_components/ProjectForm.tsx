@@ -36,6 +36,35 @@ type Props = {
   citiesObj: Record<string, string[]>;
 };
 
+type FormData = {
+  name: string;
+  description: string;
+  officeId: string;
+  assignedAgents: string;
+  publishingStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  startDate: string;
+  endDate: string;
+  deedInfo: string;
+  landArea: string;
+  nOfUnits: string;
+  slug: string;
+  location: {
+    streetAddress: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+    landmark: string;
+    district: string;
+    neighborhood: string;
+    latitude: number;
+    longitude: number;
+  };
+  unitSizes: { value: string }[];
+  socialFeatures: { value: string }[];
+  images: { url: string }[];
+};
+
 const ProjectForm = ({
   project,
   offices,
@@ -62,12 +91,12 @@ const ProjectForm = ({
   } | null>(null);
   const [selectedAgentNames, setSelectedAgentNames] = useState<string[]>([]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: project?.name || "",
     description: project?.description || "",
     officeId: project?.officeId ? project.officeId.toString() : "",
     assignedAgents: project?.assignedAgents || "",
-    publishingStatus: project?.publishingStatus || "DRAFT",
+    publishingStatus: "DRAFT",
     startDate: project?.startDate
       ? new Date(project.startDate).toISOString().split("T")[0]
       : "",
@@ -92,21 +121,23 @@ const ProjectForm = ({
     },
     unitSizes: project?.unitSizes || [{ value: "" }],
     socialFeatures: project?.socialFeatures || [{ value: "" }],
-    images: project?.images || [{ url: "" }],
+    images: project?.images.map((img) => ({ url: img.url })) || [],
   });
 
-  // Initialize form data when project changes
+  // Initialize form data and location when project changes
   useEffect(() => {
     if (project) {
       console.log("Project assigned agents:", project.assignedAgents);
 
-      setFormData((prev) => ({
-        ...prev,
+      const newFormData: FormData = {
         name: project.name || "",
         description: project.description || "",
         officeId: project.officeId ? project.officeId.toString() : "",
         assignedAgents: project.assignedAgents || "",
-        publishingStatus: project.publishingStatus || "DRAFT",
+        publishingStatus: project.publishingStatus as
+          | "DRAFT"
+          | "PUBLISHED"
+          | "ARCHIVED",
         startDate: project.startDate
           ? new Date(project.startDate).toISOString().split("T")[0]
           : "",
@@ -131,56 +162,94 @@ const ProjectForm = ({
         },
         unitSizes: project.unitSizes || [{ value: "" }],
         socialFeatures: project.socialFeatures || [{ value: "" }],
-        images: project.images || [{ url: "" }],
-      }));
-    }
-  }, [project]);
+        images: project.images.map((img) => ({ url: img.url })) || [],
+      };
 
-  // Initialize location data from project
-  useEffect(() => {
-    if (project?.location) {
-      setCountry(project.location.country);
-      setCity(project.location.city);
-      setDistrict(project.location.district);
-      setNeighborhood(project.location.neighborhood);
-      if (
-        (project.location as any).latitude &&
-        (project.location as any).longitude
-      ) {
-        setMarkerPosition({
-          lat: (project.location as any).latitude,
-          lng: (project.location as any).longitude,
-        });
+      setFormData(newFormData);
+
+      // Set location states and fetch related data
+      if (project.location) {
+        const { country, city, district, neighborhood } = project.location;
+
+        // Set location states first
+        if (country) {
+          setCountry(country);
+          // Update city options based on country
+          setCityOptions(citiesObj[country] || []);
+        }
+
+        if (city) {
+          setCity(city);
+          // Fetch districts for the city
+          fetchDistricts(city);
+        }
+
+        if (district) {
+          setDistrict(district);
+          // Fetch neighborhoods for the district
+          if (city) {
+            fetchNeighborhoods(city, district);
+          }
+        }
+
+        if (neighborhood) {
+          setNeighborhood(neighborhood);
+        }
+
+        // Set marker position if coordinates exist
+        if (
+          (project.location as any)?.latitude &&
+          (project.location as any)?.longitude
+        ) {
+          const lat = (project.location as any).latitude;
+          const lng = (project.location as any).longitude;
+          setMarkerPosition({ lat, lng });
+          // Also update form data with coordinates
+          setFormData((prev) => ({
+            ...prev,
+            location: {
+              ...prev.location,
+              latitude: lat,
+              longitude: lng,
+            },
+          }));
+        }
       }
     }
-  }, [project]);
+  }, [project, citiesObj]);
 
   // Update city options when country changes
   useEffect(() => {
     if (country) {
       setCityOptions(citiesObj[country] || []);
-      setCity("");
-      setDistrict("");
-      setNeighborhood("");
+      if (!project) {
+        setCity("");
+        setDistrict("");
+        setNeighborhood("");
+      }
     }
-  }, [country, citiesObj]);
+  }, [country, citiesObj, project]);
 
   // Fetch districts when city changes
   useEffect(() => {
     if (city) {
       fetchDistricts(city);
-      setDistrict("");
-      setNeighborhood("");
+      if (!project) {
+        setDistrict("");
+        setNeighborhood("");
+      }
     }
-  }, [city]);
+  }, [city, project]);
 
   // Fetch neighborhoods when district changes
   useEffect(() => {
     if (district && city) {
       fetchNeighborhoods(city, district);
-      setNeighborhood("");
+      if (!project) {
+        setNeighborhood("");
+      }
     }
-  }, [district, city]);
+  }, [district, city, project]);
 
   // Update selected agent names when assigned agents change
   useEffect(() => {
@@ -251,6 +320,19 @@ const ProjectForm = ({
       ...prev,
       location: { ...prev.location, country: selectedCountry },
     }));
+    // Reset other location fields
+    setCity("");
+    setDistrict("");
+    setNeighborhood("");
+    setCityOptions([]);
+    setDistrictOptions([]);
+    setNeighborhoodOptions([]);
+    // Update city options based on the selected country
+    if (selectedCountry) {
+      setCityOptions(citiesObj[selectedCountry] || []);
+    }
+    // Reset marker position when country changes
+    setMarkerPosition(null);
   };
 
   const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -260,6 +342,19 @@ const ProjectForm = ({
       ...prev,
       location: { ...prev.location, city: selectedCity },
     }));
+    // Reset dependent fields
+    setDistrict("");
+    setNeighborhood("");
+    setDistrictOptions([]);
+    setNeighborhoodOptions([]);
+    // Fetch districts for the selected city
+    if (selectedCity) {
+      fetchDistricts(selectedCity);
+      // Fetch coordinates for the city
+      fetchCoordinates(selectedCity, "", "", "");
+    }
+    // Reset marker position when city changes
+    setMarkerPosition(null);
   };
 
   const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -267,8 +362,23 @@ const ProjectForm = ({
     setDistrict(selectedDistrict);
     setFormData((prev) => ({
       ...prev,
-      location: { ...prev.location, district: selectedDistrict },
+      location: {
+        ...prev.location,
+        district: selectedDistrict,
+        state: selectedDistrict,
+      },
     }));
+    // Reset dependent field
+    setNeighborhood("");
+    setNeighborhoodOptions([]);
+    // Fetch neighborhoods for the selected district
+    if (selectedDistrict && city) {
+      fetchNeighborhoods(city, selectedDistrict);
+      // Fetch coordinates for the district
+      fetchCoordinates(city, selectedDistrict, "", "");
+    }
+    // Reset marker position when district changes
+    setMarkerPosition(null);
   };
 
   const handleNeighborhoodChange = (
@@ -280,6 +390,12 @@ const ProjectForm = ({
       ...prev,
       location: { ...prev.location, neighborhood: selectedNeighborhood },
     }));
+    // Fetch coordinates for the neighborhood
+    if (selectedNeighborhood && city && district) {
+      fetchCoordinates(city, district, selectedNeighborhood, "");
+    }
+    // Reset marker position when neighborhood changes
+    setMarkerPosition(null);
   };
 
   const handleMapClick = (lat: number, lng: number) => {
@@ -371,6 +487,72 @@ const ProjectForm = ({
         i === index ? { ...item, value } : item
       ),
     }));
+  };
+
+  const fetchCoordinates = async (
+    city: string,
+    district: string,
+    neighborhood: string,
+    address: string
+  ) => {
+    setIsLoadingCoordinates(true);
+    try {
+      // Try different address formats
+      const addressFormats: string[] = [];
+
+      // Add full address with neighborhood if available
+      if (neighborhood) {
+        addressFormats.push(
+          `${neighborhood}, ${district} İlçesi, ${city} İli, Türkiye`
+        );
+      }
+
+      // Add other address formats
+      addressFormats.push(
+        `${district} İlçesi, ${city} İli, Türkiye`,
+        `${city} İli, ${district} İlçesi, Türkiye`,
+        `${district} İlçesi, Türkiye`,
+        `${city} İli, Türkiye`
+      );
+
+      let coordinatesFound = false;
+
+      for (const addressString of addressFormats) {
+        const response = await axios.get(
+          `/api/location/get-coordinates?location=${encodeURIComponent(
+            addressString
+          )}&region=tr`
+        );
+
+        if (response.data.candidates && response.data.candidates.length > 0) {
+          const { lat, lng } = response.data.candidates[0].geometry.location;
+          setMarkerPosition({ lat, lng });
+          setFormData((prev) => ({
+            ...prev,
+            location: {
+              ...prev.location,
+              latitude: lat,
+              longitude: lng,
+            },
+          }));
+          coordinatesFound = true;
+          break;
+        }
+      }
+
+      if (!coordinatesFound) {
+        console.warn("No coordinates found for any address format:", {
+          city,
+          district,
+          neighborhood,
+          triedFormats: addressFormats,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching coordinates:", error);
+    } finally {
+      setIsLoadingCoordinates(false);
+    }
   };
 
   return (
@@ -506,12 +688,16 @@ const ProjectForm = ({
           <div className="w-full flex flex-col gap-y-4">
             <Select
               label="Ülke"
-              value={country}
+              selectedKeys={country ? [country] : []}
               onChange={handleCountryChange}
               required
             >
               {countries.map((item) => (
-                <SelectItem key={item.country_name} value={item.country_name}>
+                <SelectItem
+                  key={item.country_name}
+                  value={item.country_name}
+                  textValue={item.country_name}
+                >
                   {item.country_name}
                 </SelectItem>
               ))}
@@ -519,13 +705,14 @@ const ProjectForm = ({
 
             <Select
               label="Şehir"
-              value={city}
+              selectedKeys={city ? [city] : []}
               onChange={handleCityChange}
               required
               isLoading={isLoadingDistricts}
+              isDisabled={!country}
             >
               {cityOptions.map((c) => (
-                <SelectItem key={c} value={c}>
+                <SelectItem key={c} value={c} textValue={c}>
                   {c}
                 </SelectItem>
               ))}
@@ -533,13 +720,14 @@ const ProjectForm = ({
 
             <Select
               label="İlçe"
-              value={district}
+              selectedKeys={district ? [district] : []}
               onChange={handleDistrictChange}
               required
               isLoading={isLoadingNeighborhoods}
+              isDisabled={!city}
             >
               {districtOptions.map((c) => (
-                <SelectItem key={c.label} value={c.label}>
+                <SelectItem key={c.label} value={c.label} textValue={c.label}>
                   {c.label}
                 </SelectItem>
               ))}
@@ -547,12 +735,13 @@ const ProjectForm = ({
 
             <Select
               label="Mahalle"
-              value={neighborhood}
+              selectedKeys={neighborhood ? [neighborhood] : []}
               onChange={handleNeighborhoodChange}
               required
+              isDisabled={!district}
             >
               {neighborhoodOptions.map((c) => (
-                <SelectItem key={c.label} value={c.label}>
+                <SelectItem key={c.label} value={c.label} textValue={c.label}>
                   {c.label}
                 </SelectItem>
               ))}

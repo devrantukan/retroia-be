@@ -14,6 +14,7 @@ import axios from "axios";
 import { Button } from "@nextui-org/react";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const LIBRARIES: "places"[] = ["places"];
 
 interface LocationPickerProps {
   lat?: number;
@@ -58,7 +59,7 @@ export default function LocationPicker({
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: ["places"],
+    libraries: LIBRARIES,
   });
 
   const mapCenter = useMemo(
@@ -76,6 +77,35 @@ export default function LocationPicker({
     }),
     [markerPosition, lat, lng, mapCenter]
   );
+
+  // Fetch coordinates when location changes
+  useEffect(() => {
+    const fetchCoordinates = async () => {
+      if (city || district || neighborhood) {
+        try {
+          const response = await axios.get(
+            `/api/location/get-coordinates?city=${encodeURIComponent(
+              city || ""
+            )}&district=${encodeURIComponent(
+              district || ""
+            )}&neighborhood=${encodeURIComponent(
+              neighborhood || ""
+            )}&address=${encodeURIComponent("")}`
+          );
+          if (response.data.latitude && response.data.longitude) {
+            setMarkerPosition({
+              lat: response.data.latitude,
+              lng: response.data.longitude,
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching coordinates:", error);
+        }
+      }
+    };
+
+    fetchCoordinates();
+  }, [city, district, neighborhood, setMarkerPosition]);
 
   if (loadError) return <div>Error loading maps</div>;
   if (!isLoaded) return <div>Loading maps...</div>;
