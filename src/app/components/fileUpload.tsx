@@ -183,8 +183,8 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
             const baseFileName = file.name;
             console.log("Using original filename:", baseFileName);
 
-            // Create and upload original version
-            const originalBlob = new Blob([file], { type: file.type });
+            // Create and upload original version (resized to 1920x1080)
+            const originalBlob = await createImageVersion(img, 1920, 1080);
             const originalUrl = await uploadToBucket(
               originalBlob,
               baseFileName,
@@ -192,8 +192,8 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
             );
             console.log("Original uploaded with filename:", baseFileName);
 
-            // Create and upload 1920x1080 version
-            const largeBlob = await createImageVersion(img, 1920, 1080);
+            // Create and upload large version (resized to 1280x720)
+            const largeBlob = await createImageVersion(img, 1280, 720);
             const largeUrl = await uploadToBucket(
               largeBlob,
               baseFileName,
@@ -201,7 +201,7 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
             );
             console.log("Large version uploaded with filename:", baseFileName);
 
-            // Create and upload thumbnail version (400px width)
+            // Create and upload thumbnail version (resized to 400x225)
             const thumbnailBlob = await createImageVersion(img, 400, 225);
             const thumbnailUrl = await uploadToBucket(
               thumbnailBlob,
@@ -218,8 +218,8 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
             });
 
             // Create a new File object with the same name and add order property
-            const formFile = new File([file], baseFileName, {
-              type: file.type,
+            const formFile = new File([originalBlob], baseFileName, {
+              type: "image/jpeg",
             });
 
             // Add order, url, and name properties to the File object
