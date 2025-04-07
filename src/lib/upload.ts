@@ -9,17 +9,28 @@ export async function uploadImages(images: File[]) {
 
   try {
     const uploadPromises = images.map(async (file) => {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2)}.${fileExt}`;
+      const fileName = file.name;
       const filePath = fileName;
+
+      try {
+        const { error: deleteError } = await supabase.storage
+          .from("propertyImages")
+          .remove([fileName]);
+
+        if (deleteError) {
+          console.log(`No existing file to delete:`, fileName);
+        } else {
+          console.log(`Deleted existing file:`, fileName);
+        }
+      } catch (deleteError) {
+        console.log(`Error deleting existing file:`, deleteError);
+      }
 
       const { data, error } = await supabase.storage
         .from("propertyImages")
         .upload(filePath, file, {
           cacheControl: "3600",
-          upsert: false,
+          upsert: true,
         });
 
       if (error) {

@@ -38,6 +38,12 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
       // Get file extension
       const extension = originalName.split(".").pop()?.toLowerCase() || "jpg";
 
+      // Get the original filename without extension
+      const nameWithoutExt = originalName.substring(
+        0,
+        originalName.lastIndexOf(".")
+      );
+
       // Create timestamp
       const timestamp = new Date()
         .toISOString()
@@ -45,11 +51,8 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
         .replace("T", "_")
         .split(".")[0];
 
-      // Generate random string
-      const randomStr = Math.random().toString(36).substring(2, 8);
-
-      // Create clean name without propertyImages prefix since it's already in the path
-      return `${timestamp}_${randomStr}.${extension}`;
+      // Create clean name using original filename
+      return `${nameWithoutExt}_${timestamp}.${extension}`;
     };
 
     const createImageVersion = async (
@@ -101,24 +104,50 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
       bucket: string
     ): Promise<string> => {
       try {
+        // Ensure fileName is a string and trim any whitespace
+        const cleanFileName = String(fileName).trim();
+
         console.log(`Attempting to upload to ${bucket}:`, {
-          fileName,
+          originalFileName: fileName,
+          cleanFileName,
           fileSize: file.size,
           fileType: file.type,
         });
 
+        // First, try to delete the existing file if it exists
+        try {
+          const { error: deleteError } = await supabase.storage
+            .from(bucket)
+            .remove([cleanFileName]);
+
+          if (deleteError) {
+            console.log(
+              `No existing file to delete in ${bucket}:`,
+              cleanFileName
+            );
+          } else {
+            console.log(`Deleted existing file from ${bucket}:`, cleanFileName);
+          }
+        } catch (deleteError) {
+          console.log(
+            `Error deleting existing file from ${bucket}:`,
+            deleteError
+          );
+        }
+
+        // Now upload the new file
         const { data, error } = await supabase.storage
           .from(bucket)
-          .upload(fileName, file, {
+          .upload(cleanFileName, file, {
             cacheControl: "3600",
-            upsert: false,
+            upsert: true,
             contentType: "image/jpeg",
           });
 
         if (error) {
           console.error(`Error uploading to ${bucket}:`, {
             error,
-            fileName,
+            fileName: cleanFileName,
             bucket,
           });
           throw error;
@@ -126,9 +155,12 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
 
         const { data: urlData } = supabase.storage
           .from(bucket)
-          .getPublicUrl(fileName);
+          .getPublicUrl(cleanFileName);
 
-        console.log(`Successfully uploaded to ${bucket}:`, urlData.publicUrl);
+        console.log(`Successfully uploaded to ${bucket}:`, {
+          publicUrl: urlData.publicUrl,
+          fileName: cleanFileName,
+        });
         return urlData.publicUrl;
       } catch (error) {
         console.error(`Failed to upload to ${bucket}:`, error);
@@ -147,28 +179,72 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
               dimensions: `${img.width}x${img.height}`,
             });
 
-            // Generate base filename
-            const baseFileName = generateFileName(file.name);
-            const fileNameWithoutExt = baseFileName.split(".")[0];
+            // Use original filename for all versions
+            const baseFileName = file.name;
+            console.log("Using original filename:", baseFileName);
 
             // Create and upload original version
             const originalBlob = new Blob([file], { type: file.type });
-            await uploadToBucket(originalBlob, baseFileName, "propertyImages");
+            const originalUrl = await uploadToBucket(
+              originalBlob,
+              baseFileName,
+              "propertyImages"
+            );
+            console.log("Original uploaded with filename:", baseFileName);
 
             // Create and upload 1920x1080 version
             const largeBlob = await createImageVersion(img, 1920, 1080);
-            await uploadToBucket(largeBlob, baseFileName, "property-images");
+            const largeUrl = await uploadToBucket(
+              largeBlob,
+              baseFileName,
+              "property-images"
+            );
+            console.log("Large version uploaded with filename:", baseFileName);
 
             // Create and upload thumbnail version (400px width)
             const thumbnailBlob = await createImageVersion(img, 400, 225);
-            await uploadToBucket(
+            const thumbnailUrl = await uploadToBucket(
               thumbnailBlob,
               baseFileName,
               "thumbnails-property-images"
             );
+            console.log("Thumbnail uploaded with filename:", baseFileName);
 
-            // Return the original file for the form
-            resolve(file);
+            console.log("Uploaded image versions:", {
+              original: originalUrl,
+              large: largeUrl,
+              thumbnail: thumbnailUrl,
+              baseFileName,
+            });
+
+            // Create a new File object with the same name and add order property
+            const formFile = new File([file], baseFileName, {
+              type: file.type,
+            });
+
+            // Add order, url, and name properties to the File object
+            Object.defineProperties(formFile, {
+              order: {
+                value: 0,
+                writable: true,
+                enumerable: true,
+                configurable: true,
+              },
+              url: {
+                value: originalUrl,
+                writable: true,
+                enumerable: true,
+                configurable: true,
+              },
+              name: {
+                value: baseFileName,
+                writable: true,
+                enumerable: true,
+                configurable: true,
+              },
+            });
+
+            resolve(formFile);
           } catch (error: any) {
             console.error("Error processing image:", {
               error,
