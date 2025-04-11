@@ -104,7 +104,7 @@ export default function ProjectShare({ user }: ProjectShareProps) {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
 
-      const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/emlak/projelerimiz/${projectSlug}/${projectId}/${user.slug}/`;
+      const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/projelerimiz/${projectSlug}/${user.officeWorkerId}/${user.slug}/`;
       await navigator.clipboard.writeText(shareUrl);
       toast.success("Proje linki kopyalandı!");
     } catch (error) {
