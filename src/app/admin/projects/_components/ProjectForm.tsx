@@ -29,7 +29,7 @@ type Props = {
       images: true;
     };
   }> & {
-    catalogUrl?: string;
+    catalogUrl?: string | null;
   };
   offices: { id: number; name: string }[];
   agents?: { id: number; name: string; surname: string; officeId: number }[];
