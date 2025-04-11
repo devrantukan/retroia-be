@@ -39,6 +39,7 @@ export const projectSchema = z.object({
   landArea: z.string().min(1, "Arsa alanı zorunludur"),
   nOfUnits: z.string().min(1, "Birim sayısı zorunludur"),
   slug: z.string().min(1, "Slug zorunludur"),
+  catalogUrl: z.string().optional(),
   location: projectLocationSchema,
   unitSizes: z
     .array(projectUnitSizeSchema)

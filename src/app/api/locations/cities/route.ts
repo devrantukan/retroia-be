@@ -6,18 +6,33 @@ import { CitySchema } from "@/lib/validations/location";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const page = parseInt(searchParams.get("page") || "1");
+    const per_page = parseInt(searchParams.get("per_page") || "10");
+    const skip = (page - 1) * per_page;
 
-    const cities = await prisma.city.findMany({
-      ...(limit > 0 ? { take: limit } : {}),
-      orderBy: {
-        city_name: "asc",
-      },
-    });
+    const [total, items] = await Promise.all([
+      prisma.city.count(),
+      prisma.city.findMany({
+        take: per_page,
+        skip: skip,
+        orderBy: {
+          city_name: "asc",
+        },
+        include: {
+          country: true,
+        },
+      }),
+    ]);
 
     return NextResponse.json({
-      items: cities,
-      total: await prisma.city.count(),
+      items: items.map((item) => ({
+        ...item,
+        country_name: item.country.country_name,
+      })),
+      total,
+      page,
+      per_page,
+      total_pages: Math.ceil(total / per_page),
     });
   } catch (error) {
     console.error("Error fetching cities:", error);

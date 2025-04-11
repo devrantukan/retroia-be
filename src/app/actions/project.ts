@@ -52,42 +52,54 @@ export async function updateProject(
   try {
     const validatedData = projectSchema.parse(data);
 
-    const project = await prisma.$transaction(async (tx) => {
-      // Update the project
-      return await tx.project.update({
-        where: { id },
-        data: {
-          name: validatedData.name,
-          description: validatedData.description,
-          officeId: validatedData.officeId,
-          assignedAgents: validatedData.assignedAgents,
-          publishingStatus: validatedData.publishingStatus,
-          startDate: validatedData.startDate,
-          endDate: validatedData.endDate,
-          deedInfo: validatedData.deedInfo,
-          landArea: validatedData.landArea,
-          nOfUnits: validatedData.nOfUnits,
-          slug: validatedData.slug,
-          location: {
-            upsert: {
-              create: validatedData.location,
-              update: validatedData.location,
-            },
-          },
-          unitSizes: {
-            deleteMany: {},
-            create: validatedData.unitSizes,
-          },
-          socialFeatures: {
-            deleteMany: {},
-            create: validatedData.socialFeatures,
-          },
-          images: {
-            deleteMany: {},
-            create: validatedData.images,
+    // First, delete related records
+    await prisma.project.update({
+      where: { id },
+      data: {
+        unitSizes: {
+          deleteMany: {},
+        },
+        socialFeatures: {
+          deleteMany: {},
+        },
+        images: {
+          deleteMany: {},
+        },
+      },
+    });
+
+    // Then update the project with all related data
+    const project = await prisma.project.update({
+      where: { id },
+      data: {
+        name: validatedData.name,
+        description: validatedData.description,
+        officeId: validatedData.officeId,
+        assignedAgents: validatedData.assignedAgents,
+        publishingStatus: validatedData.publishingStatus,
+        startDate: validatedData.startDate,
+        endDate: validatedData.endDate,
+        deedInfo: validatedData.deedInfo,
+        landArea: validatedData.landArea,
+        nOfUnits: validatedData.nOfUnits,
+        slug: validatedData.slug,
+        catalogUrl: validatedData.catalogUrl,
+        location: {
+          upsert: {
+            create: validatedData.location,
+            update: validatedData.location,
           },
         },
-      });
+        unitSizes: {
+          create: validatedData.unitSizes,
+        },
+        socialFeatures: {
+          create: validatedData.socialFeatures,
+        },
+        images: {
+          create: validatedData.images,
+        },
+      },
     });
 
     return { success: true, data: project };

@@ -238,6 +238,12 @@ export default function LocationModal({
               }
               value={formData.city_id?.toString()}
               isRequired
+              scrollShadowProps={{
+                isEnabled: true,
+                hideScrollBar: false,
+                offset: 15,
+              }}
+              className="max-h-[200px]"
             >
               {(Array.isArray(cities) ? cities : []).map((city) => (
                 <SelectItem

@@ -12,6 +12,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get the agent's ID from the OfficeWorker table
+    const agent = await prisma.officeWorker.findFirst({
+      where: {
+        userId: user.id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!agent) {
+      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const search = searchParams.get("search") || "";
@@ -33,10 +47,11 @@ export async function GET(request: NextRequest) {
         },
         {
           OR: [
-            { assignedAgents: { contains: user.id } },
-            { assignedAgents: { startsWith: `${user.id},` } },
-            { assignedAgents: { endsWith: `,${user.id}` } },
-            { assignedAgents: { contains: `,${user.id},` } },
+            { assignedAgents: { contains: agent.id.toString() } },
+            { assignedAgents: { startsWith: `${agent.id},` } },
+            { assignedAgents: { endsWith: `,${agent.id}` } },
+            { assignedAgents: { contains: `,${agent.id},` } },
+            { assignedAgents: { equals: agent.id.toString() } },
           ],
         },
         {
