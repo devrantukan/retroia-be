@@ -11,6 +11,10 @@ import { saveOffice, updateOffice } from "@/lib/actions/office";
 import slugify from "slugify";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
+import OfficeImageUploader from "./OfficeImageUploader";
+import { OfficeImage } from "@prisma/client";
+import { uploadImages } from "@/lib/upload";
+import LocationPicker from "./LocationPicker";
 
 const QuillEditor = dynamic(() => import("@/app/components/RichTextEditor"), {
   ssr: false,
@@ -36,12 +40,22 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
   const [filteredNeighborhoods, setFilteredNeighborhoods] = useState<
     Array<{ neighborhood_id: number; name: string }>
   >([]);
+  const [images, setImages] = useState<File[]>([]);
+  const [deletedImages, setDeletedImages] = useState<number[]>([]);
+  const [existingImages, setExistingImages] = useState<OfficeImage[]>(
+    office?.images || []
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [markerPosition, setMarkerPosition] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(office ? { lat: office.latitude, lng: office.longitude } : null);
 
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting: formIsSubmitting },
     watch,
     setValue,
   } = useForm<OfficeFormType>({
@@ -70,7 +84,7 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
             latitude: office?.latitude || 0,
             longitude: office?.longitude || 0,
           }
-        : {},
+        : undefined,
   });
 
   useEffect(() => {
@@ -198,29 +212,37 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
   }, [districtId, locationData.neighborhoods]);
 
   const onSubmit = async (data: OfficeFormType) => {
+    setIsSubmitting(true);
     try {
-      setLoading(true);
       const slug = slugify(data.name, { lower: true, strict: true });
       const formData = {
         ...data,
         slug,
-        avatarUrl,
+        avatarUrl: avatarUrl || "",
       };
 
-      if (mode === "add") {
-        await saveOffice(formData);
-        toast.success("Ofis başarıyla eklendi!");
-      } else {
+      if (mode === "edit" && office) {
         await updateOffice(office.id, formData);
-        toast.success("Ofis başarıyla güncellendi!");
+      } else {
+        await saveOffice(formData);
       }
+
+      toast.success(
+        mode === "edit" ? "Ofis güncellendi!" : "Ofis başarıyla oluşturuldu!"
+      );
       router.push("/admin/offices");
-      router.refresh();
     } catch (error) {
+      console.error(error);
       toast.error("Bir hata oluştu!");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
+  };
+
+  const handleMapClick = (lat: number, lng: number) => {
+    setValue("latitude", lat);
+    setValue("longitude", lng);
+    setMarkerPosition({ lat, lng });
   };
 
   return (
@@ -347,6 +369,14 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
           value={watch("zip")}
         />
 
+        <div className="md:col-span-2">
+          <LocationPicker
+            latitude={watch("latitude")}
+            longitude={watch("longitude")}
+            onLocationChange={handleMapClick}
+          />
+        </div>
+
         <Input
           {...register("latitude", {
             setValueAs: (v) => (v === "" ? 0 : parseFloat(v)),
@@ -355,6 +385,7 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
           label="Enlem"
           errorMessage={errors.latitude?.message}
           isInvalid={!!errors.latitude}
+          isReadOnly
         />
 
         <Input
@@ -365,6 +396,7 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
           label="Boylam"
           errorMessage={errors.longitude?.message}
           isInvalid={!!errors.longitude}
+          isReadOnly
         />
       </div>
 
@@ -415,6 +447,17 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
         />
       </div>
 
+      <div className="mt-6">
+        <OfficeImageUploader
+          images={images}
+          setImages={setImages}
+          deletedImages={deletedImages}
+          setDeletedImages={setDeletedImages}
+          existingImages={existingImages}
+          setExistingImages={setExistingImages}
+        />
+      </div>
+
       <div className="flex justify-end gap-4">
         <Button
           color="danger"
@@ -423,7 +466,7 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
         >
           İptal
         </Button>
-        <Button color="primary" type="submit" isLoading={loading}>
+        <Button color="primary" type="submit" isLoading={isSubmitting}>
           {mode === "add" ? "Ekle" : "Güncelle"}
         </Button>
       </div>

@@ -28,7 +28,9 @@ type Props = {
       socialFeatures: true;
       images: true;
     };
-  }>;
+  }> & {
+    catalogUrl?: string;
+  };
   offices: { id: number; name: string }[];
   agents?: { id: number; name: string; surname: string; officeId: number }[];
   countries: { country_name: string }[];
@@ -47,6 +49,7 @@ type FormData = {
   deedInfo: string;
   landArea: string;
   nOfUnits: string;
+  catalogUrl: string;
   slug: string;
   location: {
     streetAddress: string;
@@ -96,7 +99,9 @@ const ProjectForm = ({
     description: project?.description || "",
     officeId: project?.officeId ? project.officeId.toString() : "",
     assignedAgents: project?.assignedAgents || "",
-    publishingStatus: "DRAFT",
+    publishingStatus:
+      (project?.publishingStatus as "DRAFT" | "PUBLISHED" | "ARCHIVED") ||
+      "DRAFT",
     startDate: project?.startDate
       ? new Date(project.startDate).toISOString().split("T")[0]
       : "",
@@ -106,6 +111,7 @@ const ProjectForm = ({
     deedInfo: project?.deedInfo || "",
     landArea: project?.landArea || "",
     nOfUnits: project?.nOfUnits || "",
+    catalogUrl: project?.catalogUrl || "",
     slug: project?.slug || "",
     location: {
       streetAddress: project?.location?.streetAddress || "",
@@ -147,6 +153,7 @@ const ProjectForm = ({
         deedInfo: project.deedInfo || "",
         landArea: project.landArea || "",
         nOfUnits: project.nOfUnits || "",
+        catalogUrl: project.catalogUrl || "",
         slug: project.slug || "",
         location: {
           streetAddress: project.location?.streetAddress || "",
@@ -565,6 +572,15 @@ const ProjectForm = ({
             setFormData((prev) => ({ ...prev, name: e.target.value }))
           }
           required
+        />
+
+        <Input
+          label="Katalog URL"
+          value={formData.catalogUrl}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, catalogUrl: e.target.value }))
+          }
+          placeholder="https://example.com/catalog.pdf"
         />
 
         <Select

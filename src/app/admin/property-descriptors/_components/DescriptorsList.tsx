@@ -87,11 +87,20 @@ export default function DescriptorsList({
       toast.success("Tanımlayıcı başarıyla silindi", {
         position: "top-right",
         autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
       });
+      window.location.assign("/admin/property-descriptors");
     } catch (error) {
       toast.error("Tanımlayıcı silinirken bir hata oluştu", {
         position: "top-right",
         autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
       });
     }
   };

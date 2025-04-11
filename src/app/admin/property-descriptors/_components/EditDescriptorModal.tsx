@@ -31,11 +31,6 @@ import {
   PropertyType,
 } from "@prisma/client";
 import { toast } from "react-toastify";
-import {
-  SelectContent,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 
 interface Props {
@@ -76,7 +71,7 @@ export default function EditDescriptorModal({
       });
       onSuccess(result);
       onClose();
-      router.refresh();
+      window.location.assign("/admin/property-descriptors");
     } catch (error) {
       toast.error("Tanımlayıcı güncellenirken bir hata oluştu", {
         position: "top-right",
@@ -90,69 +85,104 @@ export default function EditDescriptorModal({
   };
 
   return (
-    <Modal isOpen={true} onOpenChange={onClose}>
+    <Modal isOpen={true} onOpenChange={onClose} size="2xl">
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader>Tanımlayıcı Düzenle</ModalHeader>
+            <ModalHeader className="flex flex-col gap-1 text-xl font-semibold">
+              Tanımlayıcı Düzenle
+            </ModalHeader>
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
+                className="space-y-6"
               >
-                <FormField
-                  control={form.control}
-                  name="value"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tanımlayıcı Adı</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="slug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Slug</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Kategori</FormLabel>
-                      <Select
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        selectedKeys={[field.value.toString()]}
-                        className="max-w-xs"
-                      >
-                        {categories.map((category) => (
-                          <SelectItem
-                            key={category.id.toString()}
-                            value={category.id.toString()}
+                <ModalBody className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="value"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tanımlayıcı Adı</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Tanımlayıcı adını giriniz"
+                            errorMessage={form.formState.errors.value?.message}
+                            isInvalid={!!form.formState.errors.value}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="slug"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Slug</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Slug değerini giriniz"
+                            errorMessage={form.formState.errors.slug?.message}
+                            isInvalid={!!form.formState.errors.slug}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Kategori</FormLabel>
+                        <FormControl>
+                          <Select
+                            {...field}
+                            placeholder="Kategori seçiniz"
+                            selectedKeys={
+                              field.value ? [field.value.toString()] : []
+                            }
+                            onChange={(e) => {
+                              const value = e.target.value
+                                ? Number(e.target.value)
+                                : null;
+                              field.onChange(value);
+                            }}
+                            errorMessage={
+                              form.formState.errors.categoryId?.message
+                            }
+                            isInvalid={!!form.formState.errors.categoryId}
+                            className="max-w-full"
+                            value={field.value?.toString()}
                           >
-                            {category.value}
-                          </SelectItem>
-                        ))}
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full">
-                  Güncelle
-                </Button>
+                            {categories.map((category) => (
+                              <SelectItem
+                                key={category.id.toString()}
+                                value={category.id.toString()}
+                              >
+                                {category.value}
+                              </SelectItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </ModalBody>
+                <ModalFooter>
+                  <Button color="danger" variant="light" onPress={onClose}>
+                    İptal
+                  </Button>
+                  <Button color="primary" type="submit">
+                    Güncelle
+                  </Button>
+                </ModalFooter>
               </form>
             </Form>
           </>

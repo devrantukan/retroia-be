@@ -95,29 +95,6 @@ export default function LocationModal({
     setIsLoading(true);
 
     try {
-      // Validate required fields based on type
-      switch (type) {
-        case "cities":
-          if (!formData.city_name || !formData.country_id || !formData.slug) {
-            throw new Error("Şehir adı, ülke ve slug zorunludur");
-          }
-          break;
-        case "districts":
-          if (!formData.district_name || !formData.city_id || !formData.slug) {
-            throw new Error("İlçe adı, şehir ve slug zorunludur");
-          }
-          break;
-        case "neighborhoods":
-          if (
-            !formData.neighborhood_name ||
-            !formData.district_id ||
-            !formData.slug
-          ) {
-            throw new Error("Mahalle adı, ilçe ve slug zorunludur");
-          }
-          break;
-      }
-
       // Convert IDs to numbers
       const payload = {
         ...formData,
@@ -219,12 +196,20 @@ export default function LocationModal({
           <>
             <Input
               label="Ülke Adı"
-              {...register("country_name")}
+              value={formData.country_name}
+              onChange={(e) =>
+                setFormData({ ...formData, country_name: e.target.value })
+              }
+              isRequired
               errorMessage={errors.country_name?.message?.toString()}
             />
             <Input
               label="Slug"
-              {...register("slug")}
+              value={formData.slug}
+              onChange={(e) =>
+                setFormData({ ...formData, slug: e.target.value })
+              }
+              isRequired
               errorMessage={errors.slug?.message?.toString()}
             />
           </>
