@@ -92,7 +92,19 @@ export default function ProjectShare({ user }: ProjectShareProps) {
 
   const handleShare = async (projectId: number) => {
     try {
-      const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/proje/${projectId}/${user.officeWorkerId}/${user.slug}/`;
+      const project = projects.find((p) => p.id === projectId);
+      if (!project) {
+        toast.error("Proje bulunamadı!");
+        return;
+      }
+
+      // Convert project name to slug format
+      const projectSlug = project.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+      const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/emlak/projelerimiz/${projectSlug}/${projectId}/${user.slug}/`;
       await navigator.clipboard.writeText(shareUrl);
       toast.success("Proje linki kopyalandı!");
     } catch (error) {
