@@ -51,8 +51,15 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
         .replace("T", "_")
         .split(".")[0];
 
-      // Create clean name using original filename
-      return `${nameWithoutExt}_${timestamp}.${extension}`;
+      // Sanitize filename by removing special characters and spaces
+      const sanitizedName = nameWithoutExt
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "_") // Replace any non-alphanumeric character with underscore
+        .replace(/_+/g, "_") // Replace multiple underscores with single underscore
+        .replace(/^_+|_+$/g, ""); // Remove leading and trailing underscores
+
+      // Create clean name using sanitized filename
+      return `${sanitizedName}_${timestamp}.${extension}`;
     };
 
     const createImageVersion = async (
@@ -179,21 +186,20 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
               dimensions: `${img.width}x${img.height}`,
             });
 
-            // Use original filename for all versions
-            const baseFileName = file.name;
-            console.log("Using original filename:", baseFileName);
+            // Use sanitized filename for all versions
+            const baseFileName = generateFileName(file.name);
+            console.log("Using sanitized filename:", baseFileName);
 
-            // Create and upload original version (resized to 1920x1080)
-            const originalBlob = await createImageVersion(img, 1920, 1080);
+            // Upload original version (original size)
             const originalUrl = await uploadToBucket(
-              originalBlob,
+              file,
               baseFileName,
               "propertyImages"
             );
             console.log("Original uploaded with filename:", baseFileName);
 
-            // Create and upload large version (resized to 1280x720)
-            const largeBlob = await createImageVersion(img, 1280, 720);
+            // Create and upload large version (resized to 1920x1080)
+            const largeBlob = await createImageVersion(img, 1920, 1080);
             const largeUrl = await uploadToBucket(
               largeBlob,
               baseFileName,
@@ -218,7 +224,7 @@ const FileInput = React.forwardRef<HTMLInputElement, IProps>(
             });
 
             // Create a new File object with the same name and add order property
-            const formFile = new File([originalBlob], baseFileName, {
+            const formFile = new File([file], baseFileName, {
               type: "image/jpeg",
             });
 
