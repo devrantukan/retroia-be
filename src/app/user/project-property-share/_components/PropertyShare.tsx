@@ -107,7 +107,21 @@ export default function PropertyShare({ user }: PropertyShareProps) {
     }
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("pagenum", (page - 1).toString());
+    router.push(`/user/project-property-share?${params.toString()}`);
+  };
+
   const columns = [
+    {
+      key: "id",
+      label: "ID",
+      render: (property: Property) => (
+        <TableCell className="text-center">{property.id}</TableCell>
+      ),
+    },
     {
       key: "name",
       label: "BAŞLIK",
@@ -235,13 +249,9 @@ export default function PropertyShare({ user }: PropertyShareProps) {
       </Table>
       <Pagination
         total={totalPages}
-        initialPage={0}
+        initialPage={1}
         page={currentPage}
-        onChange={(page) => {
-          const params = new URLSearchParams(searchParams.toString());
-          params.set("pagenum", page.toString());
-          router.push(`/user/project-property-share?${params.toString()}`);
-        }}
+        onChange={handlePageChange}
       />
     </div>
   );

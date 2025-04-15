@@ -26,8 +26,8 @@ interface Project {
   name: string;
   description: string;
   catalogUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
   location: {
     city: string;
     district: string;
@@ -41,15 +41,24 @@ interface ProjectShareProps {
     officeWorkerId: number;
     slug: string;
   };
+  initialData?: {
+    projects: Project[];
+    totalPages: number;
+    currentPage: number;
+    totalCount: number;
+    searchTerm: string;
+  };
 }
 
-export default function ProjectShare({ user }: ProjectShareProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [searchValue, setSearchValue] = useState("");
+export default function ProjectShare({ user, initialData }: ProjectShareProps) {
+  const [projects, setProjects] = useState<Project[]>(
+    initialData?.projects || []
+  );
+  const [loading, setLoading] = useState(!initialData);
+  const [currentPage, setCurrentPage] = useState(initialData?.currentPage || 1);
+  const [totalPages, setTotalPages] = useState(initialData?.totalPages || 1);
+  const [totalCount, setTotalCount] = useState(initialData?.totalCount || 0);
+  const [searchValue, setSearchValue] = useState(initialData?.searchTerm || "");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -62,7 +71,7 @@ export default function ProjectShare({ user }: ProjectShareProps) {
       const data = await response.json();
       if (data.success) {
         setProjects(data.data);
-        setTotalPages(data.totalPages);
+        setTotalPages(Math.ceil(data.total / 10));
         setTotalCount(data.total);
       } else {
         throw new Error(data.error);
@@ -75,8 +84,10 @@ export default function ProjectShare({ user }: ProjectShareProps) {
   }, [currentPage, searchValue]);
 
   useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+    if (!initialData) {
+      fetchProjects();
+    }
+  }, [fetchProjects, initialData]);
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
@@ -88,29 +99,6 @@ export default function ProjectShare({ user }: ProjectShareProps) {
     }
     params.set("pagenum", "0");
     router.push(`/user/project-property-share?${params.toString()}`);
-  };
-
-  const handleShare = async (projectId: number) => {
-    try {
-      const project = projects.find((p) => p.id === projectId);
-      if (!project) {
-        toast.error("Proje bulunamadı!");
-        return;
-      }
-
-      // Convert project name to slug format
-      const projectSlug = project.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
-
-      const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/projelerimiz/${projectSlug}/${user.officeWorkerId}/${user.slug}/`;
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success("Proje linki kopyalandı!");
-    } catch (error) {
-      console.error("Error copying to clipboard:", error);
-      toast.error("Link kopyalanırken bir hata oluştu!");
-    }
   };
 
   const columns = [
@@ -173,6 +161,29 @@ export default function ProjectShare({ user }: ProjectShareProps) {
       ),
     },
   ];
+
+  const handleShare = async (projectId: number) => {
+    try {
+      const project = projects.find((p) => p.id === projectId);
+      if (!project) {
+        toast.error("Proje bulunamadı!");
+        return;
+      }
+
+      // Convert project name to slug format
+      const projectSlug = project.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+      const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/projelerimiz/${projectSlug}/${user.officeWorkerId}/${user.slug}/`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Proje linki kopyalandı!");
+    } catch (error) {
+      console.error("Error copying to clipboard:", error);
+      toast.error("Link kopyalanırken bir hata oluştu!");
+    }
+  };
 
   return (
     <div className="flex flex-col items-center gap-4 w-full mt-8">

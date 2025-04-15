@@ -70,6 +70,9 @@ export default function ProjectImagesUploader({
             `${validUrls.length} proje görseli başarıyla yüklendi!`
           );
         }
+      } catch (error) {
+        console.error("Error uploading images:", error);
+        toast.error("Görseller yüklenirken bir hata oluştu");
       } finally {
         setUploading(false);
       }
@@ -84,6 +87,7 @@ export default function ProjectImagesUploader({
     },
     multiple: true,
     noClick: isDragging,
+    maxFiles: 10,
   });
 
   const handleRemoveImage = (index: number) => {
@@ -134,7 +138,11 @@ export default function ProjectImagesUploader({
                   className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
                 >
                   {previewUrls.map((url, index) => (
-                    <Draggable key={url} draggableId={url} index={index}>
+                    <Draggable
+                      key={`${url}-${index}`}
+                      draggableId={`${url}-${index}`}
+                      index={index}
+                    >
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}

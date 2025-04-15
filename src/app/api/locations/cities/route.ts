@@ -6,14 +6,34 @@ import { CitySchema } from "@/lib/validations/location";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const per_page = parseInt(searchParams.get("per_page") || "10");
-    const skip = (page - 1) * per_page;
+    const page = searchParams.get("page");
+    const per_page = searchParams.get("per_page");
 
+    // If no pagination parameters are provided, return all cities
+    if (!page || !per_page) {
+      const items = await prisma.city.findMany({
+        orderBy: {
+          city_name: "asc",
+        },
+        include: {
+          country: true,
+        },
+      });
+
+      return NextResponse.json({
+        items: items.map((item) => ({
+          ...item,
+          country_name: item.country.country_name,
+        })),
+      });
+    }
+
+    // Handle paginated request
+    const skip = (parseInt(page) - 1) * parseInt(per_page);
     const [total, items] = await Promise.all([
       prisma.city.count(),
       prisma.city.findMany({
-        take: per_page,
+        take: parseInt(per_page),
         skip: skip,
         orderBy: {
           city_name: "asc",
@@ -30,9 +50,9 @@ export async function GET(request: Request) {
         country_name: item.country.country_name,
       })),
       total,
-      page,
-      per_page,
-      total_pages: Math.ceil(total / per_page),
+      page: parseInt(page),
+      per_page: parseInt(per_page),
+      total_pages: Math.ceil(total / parseInt(per_page)),
     });
   } catch (error) {
     console.error("Error fetching cities:", error);

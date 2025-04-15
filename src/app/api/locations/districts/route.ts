@@ -20,13 +20,21 @@ export async function GET(request: Request) {
           district_name: "asc",
         },
         include: {
-          city: true,
+          city: {
+            include: {
+              country: true,
+            },
+          },
         },
       }),
     ]);
 
     return NextResponse.json({
-      items,
+      items: items.map((item) => ({
+        ...item,
+        country_name: item.city.country.country_name,
+        country_id: item.city.country.country_id,
+      })),
       total,
       page,
       per_page,

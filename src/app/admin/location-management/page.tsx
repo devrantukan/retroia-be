@@ -2,7 +2,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { Tabs, Tab } from "@nextui-org/react";
 import { useDisclosure } from "@nextui-org/react";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import CountryTable from "./_components/CountryTable";
 import CityTable from "./_components/CityTable";
 import DistrictTable from "./_components/DistrictTable";
@@ -137,7 +138,7 @@ export default function LocationManagement() {
 
   const fetchCities = async () => {
     try {
-      const response = await fetch("/api/locations/cities?limit=0");
+      const response = await fetch("/api/locations/cities");
       const data = await response.json();
       setCities(data.items || []);
     } catch (error) {
@@ -159,6 +160,8 @@ export default function LocationManagement() {
         onSelectionChange={(key) => {
           setSelectedTab(key.toString());
           setPage(1);
+          onClose();
+          setEditingItem(null);
         }}
       >
         <Tab key="countries" title="Ülkeler">

@@ -14,58 +14,50 @@ export async function GET(request: Request) {
     const searchNumber = parseInt(search);
     const isNumericSearch = !isNaN(searchNumber);
 
-    // If it's a numeric search, use raw SQL for exact ID match
-    if (isNumericSearch) {
-      const properties = await prisma.$queryRaw`
-        SELECT p.*, 
-               s.*, 
-               t.*, 
-               a.*, 
-               json_agg(i.*) as images
-        FROM "Property" p
-        LEFT JOIN "PropertyStatus" s ON p."statusId" = s.id
-        LEFT JOIN "PropertyType" t ON p."typeId" = t.id
-        LEFT JOIN "Agent" a ON p."agentId" = a.id
-        LEFT JOIN "PropertyImage" i ON p.id = i."propertyId"
-        WHERE p.id = ${searchNumber}
-        GROUP BY p.id, s.id, t.id, a.id
-      `;
-
-      if (properties && Array.isArray(properties) && properties.length > 0) {
-        return NextResponse.json({
-          items: properties,
-          total: 1,
-          pages: 1,
-        });
-      }
-    }
-
-    // If no exact ID match found, proceed with text search
-    const where: Prisma.PropertyWhereInput = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
-            {
-              agent: {
+    // Build where clause for both text and numeric searches
+    const where: Prisma.PropertyWhereInput = {
+      AND: [
+        // Base condition: only published properties
+        { publishingStatus: "PUBLISHED" },
+        // Search conditions
+        ...(search
+          ? [
+              {
                 OR: [
+                  // Text search on name
                   {
                     name: {
                       contains: search,
                       mode: Prisma.QueryMode.insensitive,
                     },
                   },
+                  // ID search if search term is numeric
+                  ...(isNumericSearch ? [{ id: searchNumber }] : []),
+                  // Agent name search
                   {
-                    surname: {
-                      contains: search,
-                      mode: Prisma.QueryMode.insensitive,
+                    agent: {
+                      OR: [
+                        {
+                          name: {
+                            contains: search,
+                            mode: Prisma.QueryMode.insensitive,
+                          },
+                        },
+                        {
+                          surname: {
+                            contains: search,
+                            mode: Prisma.QueryMode.insensitive,
+                          },
+                        },
+                      ],
                     },
                   },
                 ],
               },
-            },
-          ],
-        }
-      : {};
+            ]
+          : []),
+      ],
+    };
 
     const [properties, total] = await Promise.all([
       prisma.property.findMany({

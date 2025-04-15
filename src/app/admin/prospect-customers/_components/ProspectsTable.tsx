@@ -15,6 +15,7 @@ import { deleteProspect } from "@/lib/actions/prospect";
 import { toast } from "react-toastify";
 import { EyeIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import ProspectDetailsModal from "@/app/admin/prospect-customers/_components/ProspectDetailsModal";
 
@@ -43,14 +44,23 @@ export default function ProspectsTable({
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(
     null
   );
+  const router = useRouter();
 
   const handleDelete = async (id: number) => {
     if (confirm("Bu müşteri adayını silmek istediğinizden emin misiniz?")) {
       try {
-        await deleteProspect(id);
+        const response = await fetch(`/api/prospect-customers/${id}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete prospect");
+        }
+
         toast.success("Müşteri adayı başarıyla silindi!");
-        window.location.reload();
+        router.refresh();
       } catch (error) {
+        console.error("Error deleting prospect:", error);
         toast.error("Müşteri adayı silinirken bir hata oluştu");
       }
     }

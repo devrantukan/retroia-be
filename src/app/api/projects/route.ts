@@ -63,25 +63,42 @@ export async function GET(request: NextRequest) {
     // Get total count with search filter
     const total = await prisma.project.count({ where });
 
+    // Calculate total pages
+    const totalPages = Math.ceil(total / pageSize);
+
+    // Ensure page is within valid range
+    const validPage = Math.max(1, Math.min(page, totalPages));
+
     const projects = await prisma.project.findMany({
       where,
       include: {
         location: true,
       },
-      skip: (page - 1) * pageSize,
+      skip: (validPage - 1) * pageSize,
       take: pageSize,
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    return NextResponse.json({
+    // Create response with cache control headers
+    const response = NextResponse.json({
       success: true,
       data: projects,
       total,
-      totalPages: Math.ceil(total / pageSize),
-      currentPage: page,
+      totalPages,
+      currentPage: validPage,
     });
+
+    // Prevent caching
+    response.headers.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+
+    return response;
   } catch (error) {
     console.error("Error fetching projects:", error);
     return NextResponse.json(

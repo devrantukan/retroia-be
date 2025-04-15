@@ -21,7 +21,11 @@ export async function GET(request: Request) {
         include: {
           district: {
             include: {
-              city: true,
+              city: {
+                include: {
+                  country: true,
+                },
+              },
             },
           },
         },
@@ -29,7 +33,11 @@ export async function GET(request: Request) {
     ]);
 
     return NextResponse.json({
-      items,
+      items: items.map((item) => ({
+        ...item,
+        country_name: item.district.city.country.country_name,
+        country_id: item.district.city.country.country_id,
+      })),
       total,
       page,
       per_page,

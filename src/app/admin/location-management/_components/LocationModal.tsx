@@ -90,6 +90,11 @@ export default function LocationModal({
     }
   }, [item]);
 
+  // Add new effect to reset form when type changes
+  useEffect(() => {
+    resetForm();
+  }, [type]);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -226,18 +231,18 @@ export default function LocationModal({
               required
             />
             <Select
-              label="Şehir"
+              label="Ülke"
               selectedKeys={
-                formData.city_id ? [formData.city_id.toString()] : []
+                formData.country_id ? [formData.country_id.toString()] : []
               }
-              defaultSelectedKeys={
-                formData.city_id ? [formData.city_id.toString()] : []
-              }
-              onChange={(e) =>
-                setFormData({ ...formData, city_id: e.target.value })
-              }
-              value={formData.city_id?.toString()}
-              isRequired
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  country_id: e.target.value,
+                  city_id: "", // Reset city when country changes
+                });
+              }}
+              required
               scrollShadowProps={{
                 isEnabled: true,
                 hideScrollBar: false,
@@ -245,14 +250,38 @@ export default function LocationModal({
               }}
               className="max-h-[200px]"
             >
-              {(Array.isArray(cities) ? cities : []).map((city) => (
-                <SelectItem
-                  key={city.city_id.toString()}
-                  value={city.city_id.toString()}
-                >
-                  {city.city_name}
+              {countries.map((country) => (
+                <SelectItem key={country.country_id} value={country.country_id}>
+                  {country.country_name}
                 </SelectItem>
               ))}
+            </Select>
+            <Select
+              label="Şehir"
+              selectedKeys={
+                formData.city_id ? [formData.city_id.toString()] : []
+              }
+              onChange={(e) =>
+                setFormData({ ...formData, city_id: e.target.value })
+              }
+              required
+              isDisabled={!formData.country_id}
+              scrollShadowProps={{
+                isEnabled: true,
+                hideScrollBar: false,
+                offset: 15,
+              }}
+              className="max-h-[200px]"
+            >
+              {cities
+                .filter(
+                  (city) => city.country_id === parseInt(formData.country_id)
+                )
+                .map((city) => (
+                  <SelectItem key={city.city_id} value={city.city_id}>
+                    {city.city_name}
+                  </SelectItem>
+                ))}
             </Select>
             <Input
               label="Slug"
@@ -276,6 +305,86 @@ export default function LocationModal({
               required
             />
             <Select
+              label="Ülke"
+              selectedKeys={
+                formData.country_id ? [formData.country_id.toString()] : []
+              }
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  country_id: e.target.value,
+                  city_id: "", // Reset city when country changes
+                  district_id: "", // Reset district when country changes
+                });
+              }}
+              required
+              scrollShadowProps={{
+                isEnabled: true,
+                hideScrollBar: false,
+                offset: 15,
+              }}
+              listboxProps={{
+                itemClasses: {
+                  base: "data-[hover=true]:bg-default-100/80",
+                },
+              }}
+              popoverProps={{
+                classNames: {
+                  base: "before:bg-default-200",
+                  content: "p-0 border-small border-divider bg-background",
+                },
+              }}
+            >
+              {countries.map((country) => (
+                <SelectItem key={country.country_id} value={country.country_id}>
+                  {country.country_name}
+                </SelectItem>
+              ))}
+            </Select>
+            <Select
+              label="Şehir"
+              selectedKeys={
+                formData.city_id ? [formData.city_id.toString()] : []
+              }
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  city_id: e.target.value,
+                  district_id: "", // Reset district when city changes
+                });
+              }}
+              required
+              isDisabled={!formData.country_id}
+              scrollShadowProps={{
+                isEnabled: true,
+                hideScrollBar: false,
+                offset: 15,
+              }}
+              listboxProps={{
+                itemClasses: {
+                  base: "data-[hover=true]:bg-default-100/80",
+                },
+              }}
+              popoverProps={{
+                classNames: {
+                  base: "before:bg-default-200",
+                  content: "p-0 border-small border-divider bg-background",
+                },
+              }}
+            >
+              {cities
+                .filter((city) => {
+                  const selectedCountryId = parseInt(formData.country_id);
+                  return city.country_id === selectedCountryId;
+                })
+                .sort((a, b) => a.city_name.localeCompare(b.city_name))
+                .map((city) => (
+                  <SelectItem key={city.city_id} value={city.city_id}>
+                    {city.city_name}
+                  </SelectItem>
+                ))}
+            </Select>
+            <Select
               label="İlçe"
               selectedKeys={
                 formData.district_id ? [formData.district_id.toString()] : []
@@ -284,15 +393,38 @@ export default function LocationModal({
                 setFormData({ ...formData, district_id: e.target.value })
               }
               required
+              isDisabled={!formData.city_id}
+              scrollShadowProps={{
+                isEnabled: true,
+                hideScrollBar: false,
+                offset: 15,
+              }}
+              listboxProps={{
+                itemClasses: {
+                  base: "data-[hover=true]:bg-default-100/80",
+                },
+              }}
+              popoverProps={{
+                classNames: {
+                  base: "before:bg-default-200",
+                  content: "p-0 border-small border-divider bg-background",
+                },
+              }}
             >
-              {districts.map((district) => (
-                <SelectItem
-                  key={district.district_id}
-                  value={district.district_id}
-                >
-                  {district.district_name}
-                </SelectItem>
-              ))}
+              {districts
+                .filter((district) => {
+                  const selectedCityId = parseInt(formData.city_id);
+                  return district.city_id === selectedCityId;
+                })
+                .sort((a, b) => a.district_name.localeCompare(b.district_name))
+                .map((district) => (
+                  <SelectItem
+                    key={district.district_id}
+                    value={district.district_id}
+                  >
+                    {district.district_name}
+                  </SelectItem>
+                ))}
             </Select>
             <Input
               label="Slug"

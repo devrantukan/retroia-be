@@ -52,14 +52,15 @@ export async function uploadToSupabase(
 export async function uploadProjectImage(file: File, projectName?: string) {
   try {
     const fileExt = file.name.split(".").pop();
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
     const fileName = projectName
-      ? `${projectName}-${Date.now()}.${fileExt}`
-      : `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      ? `${projectName}-${uniqueId}.${fileExt}`
+      : `${uniqueId}.${fileExt}`;
 
     const { data, error } = await supabase.storage
       .from("project-images")
       .upload(fileName, file, {
-        upsert: true,
+        upsert: false,
         cacheControl: "3600",
         contentType: file.type,
       });
