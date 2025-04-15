@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import { EyeIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import ProspectAgentDetailsModal from "./ProspectAgentDetailsModal";
+import { useRouter } from "next/navigation";
 
 interface ProspectAgent {
   id: number;
@@ -39,14 +40,23 @@ export default function ProspectAgentsTable({
   const [selectedAgent, setSelectedAgent] = useState<ProspectAgent | null>(
     null
   );
+  const router = useRouter();
 
   const handleDelete = async (id: number) => {
     if (confirm("Bu danışman adayını silmek istediğinizden emin misiniz?")) {
       try {
-        await deleteProspectAgent(id);
+        const response = await fetch(`/api/prospect-agents/${id}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete prospect agent");
+        }
+
         toast.success("Danışman adayı başarıyla silindi!");
-        window.location.reload();
+        router.refresh();
       } catch (error) {
+        console.error("Error deleting prospect agent:", error);
         toast.error("Danışman adayı silinirken bir hata oluştu");
       }
     }
