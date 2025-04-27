@@ -42,14 +42,18 @@ export async function createOfficeWorker(data: OfficeWorkerFormType) {
   try {
     let kindeUserId = data.userId;
 
+    // Get role name from database
+    const role = await prisma.role.findUnique({
+      where: { id: Number(data.roleId) },
+      select: { title: true },
+    });
+
+    if (!role) {
+      throw new Error(`Role with id ${data.roleId} not found`);
+    }
+
     // If roleId is not 10 (admin), create a new Kinde user
     if (Number(data.roleId) !== 10) {
-      // Get role name from database
-      const role = await prisma.role.findUnique({
-        where: { id: Number(data.roleId) },
-        select: { title: true },
-      });
-
       const kindeUser = await createKindeUser(
         data.email,
         data.name,
@@ -79,6 +83,7 @@ export async function createOfficeWorker(data: OfficeWorkerFormType) {
         commercialDocumentId: data.commercialDocumentId || "",
         companyLegalName: data.companyLegalName || "",
         slug: `${data.name}-${data.surname}`.toLowerCase().replace(/\s+/g, "-"),
+        title: role.title,
       },
       include: {
         office: true,

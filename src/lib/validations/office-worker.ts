@@ -18,6 +18,7 @@ export const OfficeWorkerSchema = z.object({
   companyLegalName: z.string().optional(),
   avatarUrl: z.string().optional(),
   userId: z.string().optional(),
+  title: z.string().optional(),
 });
 
 export type OfficeWorkerFormType = z.infer<typeof OfficeWorkerSchema>;
