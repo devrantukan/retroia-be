@@ -47,6 +47,10 @@ export default async function EditProjectPage({
       name: true,
       surname: true,
       officeId: true,
+      role: true,
+    },
+    where: {
+      roleId: { in: [7, 6] },
     },
   });
 

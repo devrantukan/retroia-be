@@ -339,6 +339,9 @@ const Picture = ({
           name="videoSource"
           defaultValue={getValues().videoSource}
         />
+        <p className="text-sm text-red-500 mt-1">
+          Dikey video (Shorts) linkleri gösterilmemektedir.
+        </p>
         <Input
           {...register("threeDSource")}
           errorMessage={errors.threeDSource?.message}

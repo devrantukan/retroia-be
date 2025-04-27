@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { OfficeWorkerFormType } from "@/lib/validations/office-worker";
 
+import { createKindeUser } from "./kinde";
+
 const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL;
 const REVALIDATION_TOKEN = process.env.NEXT_PUBLIC_REVALIDATION_TOKEN;
 
@@ -38,12 +40,30 @@ async function revalidateFrontend(path: string) {
 
 export async function createOfficeWorker(data: OfficeWorkerFormType) {
   try {
+    let kindeUserId = data.userId;
+
+    // If roleId is not 10 (admin), create a new Kinde user
+    if (Number(data.roleId) !== 10) {
+      // Get role name from database
+      const role = await prisma.role.findUnique({
+        where: { id: Number(data.roleId) },
+        select: { title: true },
+      });
+
+      const kindeUser = await createKindeUser(
+        data.email,
+        data.name,
+        data.surname
+      );
+      kindeUserId = kindeUser.id;
+    }
+
     const worker = await prisma.officeWorker.create({
       data: {
         ...data,
         roleId: Number(data.roleId),
         officeId: Number(data.officeId),
-        userId: data.userId || null,
+        userId: kindeUserId || null,
         name: data.name,
         surname: data.surname,
         email: data.email,
