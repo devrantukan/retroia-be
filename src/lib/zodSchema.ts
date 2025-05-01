@@ -36,8 +36,7 @@ export const getAddPropertyFormSchema = async () => {
       .min(1, "Lütfen kontrat tipini seçiniz")
       .transform((data: unknown) => Number(data)),
     deedStatusId: z
-      .string()
-      .min(1, "Lütfen tapu durumunu seçiniz")
+      .union([z.string(), z.number()])
       .transform((data: unknown) => Number(data)),
 
     price: z

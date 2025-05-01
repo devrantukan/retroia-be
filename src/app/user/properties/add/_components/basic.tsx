@@ -82,12 +82,21 @@ const Basic = (props: Props) => {
       setValue("propertyFeature.floor", 0);
       setValue("propertyFeature.totalFloor", 0);
     }
-  }, [getValues, setValue, isMustakilEv]);
+
+    // Set default deedStatusId for rental properties
+    if (!isSatilik && props.deedStatuses.length > 0) {
+      setValue("deedStatusId", 8);
+    }
+  }, [getValues, setValue, isMustakilEv, isSatilik, props.deedStatuses]);
 
   //console.log("tid", typeId);
   //console.log("stid", subTypeId);
   //console.log("gvid", getValues().subTypeId);
   const handleNext = async () => {
+    const values = getValues();
+    console.log("Form values:", values);
+    console.log("Form errors:", errors);
+
     if (
       await trigger([
         "name",
