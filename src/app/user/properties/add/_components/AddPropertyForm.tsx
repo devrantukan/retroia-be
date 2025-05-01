@@ -16,6 +16,7 @@ import {
   District,
   Neighborhood,
   PropertyDescriptorCategory,
+  PropertyDeedStatus,
 } from "@prisma/client";
 import { cn } from "@nextui-org/react";
 import Location from "./Location";
@@ -60,6 +61,7 @@ interface Props {
   subTypes: PropertySubType[];
   contracts: PropertyContract[];
   statuses: PropertyStatus[];
+  deedStatuses: PropertyDeedStatus[];
   agents: OfficeWorker[];
   countries: Country[];
   cities: City[];
@@ -105,6 +107,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
             floor: Number(props.property.feature.floor),
             totalFloor: Number(props.property.feature.totalFloor),
             area: Number(props.property.feature.area),
+            grossArea: Number(props.property.feature.grossArea),
             hasSwimmingPool: props.property.feature.hasSwimmingPool,
             hasGardenYard: props.property.feature.hasGardenYard,
             hasBalcony: props.property.feature.hasBalcony,
@@ -115,6 +118,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
       price: props.property?.price ?? undefined,
       discountedPrice: props.property?.discountedPrice?.toString(),
       statusId: props.property?.statusId ?? undefined,
+      deedStatusId: props.property?.deedStatusId ?? undefined,
       typeId: props.property?.typeId ?? undefined,
       subTypeId: props.property?.subTypeId ?? undefined,
       contractId: props.property?.contractId ?? undefined,
@@ -243,6 +247,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
             types={props.types}
             subTypes={props.subTypes}
             contracts={props.contracts}
+            deedStatuses={props.deedStatuses}
             statuses={props.statuses}
           />
           <Location
@@ -259,6 +264,7 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
             next={() => setStep((prev) => prev + 1)}
             prev={() => setStep((prev) => prev - 1)}
             className={cn({ hidden: step !== 2 })}
+            subTypes={props.subTypes}
           />
           <Contact
             role={role}

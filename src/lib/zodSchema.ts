@@ -35,6 +35,10 @@ export const getAddPropertyFormSchema = async () => {
       .string()
       .min(1, "Lütfen kontrat tipini seçiniz")
       .transform((data: unknown) => Number(data)),
+    deedStatusId: z
+      .string()
+      .min(1, "Lütfen tapu durumunu seçiniz")
+      .transform((data: unknown) => Number(data)),
 
     price: z
       .string()
@@ -71,6 +75,7 @@ export const getAddPropertyFormSchema = async () => {
       floor: z.number(),
       totalFloor: z.number(),
       area: z.number(),
+      grossArea: z.number(),
       hasSwimmingPool: z.boolean().default(false),
       hasGardenYard: z.boolean().default(false),
       hasBalcony: z.boolean().default(false),

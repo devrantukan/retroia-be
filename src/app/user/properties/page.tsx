@@ -30,6 +30,8 @@ const PropertiesPage = async ({ searchParams }: Props) => {
 
   const search = (searchParams.search as string) || "";
   const pagenum = +(searchParams.pagenum ?? 1) - 1;
+  const sort = (searchParams.sort as string) || "id";
+  const direction = (searchParams.direction as "asc" | "desc") || "desc";
 
   // Check if search term is a number
   const searchNumber = parseInt(search);
@@ -72,6 +74,21 @@ const PropertiesPage = async ({ searchParams }: Props) => {
   // Get total count with search filter
   const totalPropertiesPromise = await prisma.property.count({ where });
 
+  // Build orderBy clause based on sort field
+  const orderBy: Prisma.PropertyOrderByWithRelationInput = {};
+
+  // Handle nested fields for sorting
+  if (sort === "type") {
+    orderBy.type = { value: direction };
+  } else if (sort === "status") {
+    orderBy.status = { value: direction };
+  } else if (sort === "agent") {
+    orderBy.agent = { name: direction };
+  } else {
+    // Handle direct property fields
+    orderBy[sort as keyof Prisma.PropertyOrderByWithRelationInput] = direction;
+  }
+
   const propertiesPromise = await prisma.property.findMany({
     where,
     include: {
@@ -82,9 +99,7 @@ const PropertiesPage = async ({ searchParams }: Props) => {
     },
     skip: Math.max(0, pagenum * PAGE_SIZE),
     take: PAGE_SIZE,
-    orderBy: {
-      id: "desc",
-    },
+    orderBy,
   });
 
   const [properties, totalProperties] = await Promise.all([

@@ -22,6 +22,8 @@ import { Input } from "@nextui-org/input";
 import { MagnifyingGlassIcon } from "@heroicons/react/16/solid";
 import { useState, useEffect } from "react";
 
+type SortDirection = "asc" | "desc";
+
 type Props = {
   properties: Prisma.PropertyGetPayload<{
     include: {
@@ -47,11 +49,25 @@ const PropertiesTable = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const [sortKey, setSortKey] = useState<string>("id");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   // Update search term when initialSearchTerm changes
   useEffect(() => {
     setSearchTerm(initialSearchTerm);
   }, [initialSearchTerm]);
+
+  const handleSort = (key: string) => {
+    const newDirection =
+      key === sortKey && sortDirection === "asc" ? "desc" : "asc";
+    setSortKey(key);
+    setSortDirection(newDirection);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sort", key);
+    params.set("direction", newDirection);
+    router.push(`/user/properties?${params.toString()}`);
+  };
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -140,6 +156,7 @@ const PropertiesTable = ({
     {
       key: "id",
       label: "ID",
+      sortable: true,
       render: (property: any) => (
         <TableCell className="text-left">{property.id}</TableCell>
       ),
@@ -147,6 +164,7 @@ const PropertiesTable = ({
     {
       key: "name",
       label: "BAŞLIK",
+      sortable: true,
       render: (property: any) => (
         <TableCell className="text-left">{property.name}</TableCell>
       ),
@@ -154,6 +172,7 @@ const PropertiesTable = ({
     {
       key: "price",
       label: "FİYAT",
+      sortable: true,
       render: (property: any) => (
         <TableCell className="text-right">
           {new Intl.NumberFormat("tr-TR", {
@@ -168,6 +187,7 @@ const PropertiesTable = ({
     {
       key: "type",
       label: "TİP",
+      sortable: true,
       render: (property: any) => (
         <TableCell className="text-center">{property.type.value}</TableCell>
       ),
@@ -175,6 +195,7 @@ const PropertiesTable = ({
     {
       key: "status",
       label: "DURUM",
+      sortable: true,
       render: (property: any) => (
         <TableCell className="text-center">{property.status.value}</TableCell>
       ),
@@ -182,6 +203,7 @@ const PropertiesTable = ({
     {
       key: "publishingStatus",
       label: "Yayın Durumu",
+      sortable: true,
       render: (property: any) => {
         const isPublished = property.publishingStatus === "PUBLISHED";
         return (
@@ -206,6 +228,7 @@ const PropertiesTable = ({
     {
       key: "agent",
       label: "DANIŞMAN",
+      sortable: true,
       render: (property: any) => (
         <TableCell>
           {property.agent?.name} {property.agent?.surname}
@@ -215,6 +238,7 @@ const PropertiesTable = ({
     {
       key: "createdAt",
       label: "OLUŞTURMA TARİHİ",
+      sortable: true,
       render: (property: any) => (
         <TableCell className="text-center">
           {new Date(property.createdAt).toLocaleDateString("tr-TR")}
@@ -224,6 +248,7 @@ const PropertiesTable = ({
     {
       key: "updatedAt",
       label: "SON GÜNCELLEME TARİHİ",
+      sortable: true,
       render: (property: any) => (
         <TableCell className="text-center">
           {new Date(property.updatedAt).toLocaleDateString("tr-TR")}
@@ -233,6 +258,7 @@ const PropertiesTable = ({
     {
       key: "actions",
       label: "İŞLEMLER",
+      sortable: false,
       render: (property: any) => (
         <TableCell>
           <div className="flex items-center justify-end gap-4">
@@ -275,18 +301,22 @@ const PropertiesTable = ({
       </div>
       <Table>
         <TableHeader>
-          <TableColumn className="text-left">ID</TableColumn>
-          <TableColumn className="text-left">BAŞLIK</TableColumn>
-          <TableColumn className="text-right">FİYAT</TableColumn>
-          <TableColumn className="text-center">TİP</TableColumn>
-          <TableColumn className="text-center">DURUM</TableColumn>
-          <TableColumn className="text-center">YAYIN DURUMU</TableColumn>
-          <TableColumn className="text-left">DANIŞMAN</TableColumn>
-          <TableColumn className="text-center">OLUŞTURMA TARİHİ</TableColumn>
-          <TableColumn className="text-center">
-            SON GÜNCELLEME TARİHİ
-          </TableColumn>
-          <TableColumn className="text-right">İŞLEMLER</TableColumn>
+          {columns.map((column) => (
+            <TableColumn
+              key={column.key}
+              className={column.sortable ? "cursor-pointer select-none" : ""}
+              onClick={() => column.sortable && handleSort(column.key)}
+            >
+              <div className="flex items-center gap-1">
+                {column.label}
+                {column.sortable && sortKey === column.key && (
+                  <span className="text-xs">
+                    {sortDirection === "asc" ? "↑" : "↓"}
+                  </span>
+                )}
+              </div>
+            </TableColumn>
+          ))}
         </TableHeader>
         <TableBody>
           {properties.map((item) => (

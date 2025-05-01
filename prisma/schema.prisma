@@ -52,6 +52,8 @@ model Property {
   contract     PropertyContract    @relation(fields: [contractId], references: [id])
   videoSource  String
   threeDSource     String
+  deedStatusId    Int
+  deedStatus      PropertyDeedStatus    @relation(fields: [deedStatusId], references: [id])
   publishingStatus    String   @default("PENDING")
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -74,6 +76,7 @@ model PropertyFeature {
   floor           Int
   totalFloor      Int
   area            Int
+  grossArea       Int   
   hasSwimmingPool Boolean
   hasGardenYard   Boolean
   hasBalcony      Boolean
@@ -143,6 +146,13 @@ model DescriptorsOnProperties {
 }
 
 model PropertyStatus {
+  id       Int        @id @default(autoincrement())
+  value    String
+  slug     String
+  Property Property[]
+}
+
+model PropertyDeedStatus {
   id       Int        @id @default(autoincrement())
   value    String
   slug     String

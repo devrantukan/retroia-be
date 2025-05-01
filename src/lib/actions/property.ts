@@ -6,6 +6,19 @@ import { Property } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { writeFile } from "fs/promises";
 import path from "path";
+import { createClient } from "@supabase/supabase-js";
+
+if (
+  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+) {
+  throw new Error("Missing Supabase environment variables");
+}
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export async function managePropertyDescriptor(descriptorId: number) {
   const descriptorDetails = await prisma.propertyDescriptor.findUnique({
@@ -64,6 +77,7 @@ export async function saveProperty(
       ? Number(propertyData.discountedPrice)
       : 0,
     statusId: propertyData.statusId,
+    deedStatusId: propertyData.deedStatusId,
     typeId: propertyData.typeId,
     subTypeId: propertyData.subTypeId ?? 0,
     contractId: propertyData.contractId,
@@ -113,6 +127,7 @@ export async function saveProperty(
           floor: Number(propertyData.propertyFeature.floor),
           totalFloor: Number(propertyData.propertyFeature.totalFloor),
           area: Number(propertyData.propertyFeature.area),
+          grossArea: Number(propertyData.propertyFeature.grossArea),
         },
       },
       descriptors: {
@@ -217,6 +232,7 @@ export async function editProperty(
               ? Number(data.discountedPrice)
               : undefined,
             statusId: Number(data.statusId),
+            deedStatusId: Number(data.deedStatusId),
             typeId: Number(data.typeId),
             subTypeId: Number(data.subTypeId) || undefined,
             contractId: Number(data.contractId),
@@ -273,30 +289,57 @@ export async function deleteProperty(id: number) {
   return result;
 }
 
-export async function uploadImages(images: File[]) {
-  if (typeof window === "undefined") {
-    // Server-side: Skip image processing
-    return [];
-  }
-
+async function uploadImages(images: File[], bucketName = "property-images") {
   try {
-    const uploadPromises = images.map(async (image) => {
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+    const uploadedUrls = [];
 
-      // Create unique filename
-      const filename = `${Date.now()}-${image.name}`;
-      const filepath = path.join(process.cwd(), "public/uploads", filename);
+    for (const image of images) {
+      // Get file extension
+      const fileExtension = image.name.split(".").pop()?.toLowerCase() || "";
 
-      // Save file
-      await writeFile(filepath, new Uint8Array(buffer));
-      return `/uploads/${filename}`;
-    });
+      // Create a consistent filename format: timestamp_originalname_hash.extension
+      const timestamp = Date.now();
+      const sanitizedName = image.name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+        .replace(/[^a-z0-9.]/g, "_") // Replace special chars with underscore
+        .replace(/_{2,}/g, "_") // Replace multiple underscores with single one
+        .split(".")[0]; // Remove original extension
 
-    return await Promise.all(uploadPromises);
-  } catch (error) {
+      // Create a unique hash based on timestamp and original name
+      const uniqueHash = Math.random().toString(36).substring(2, 8);
+      const uniqueFileName = `${timestamp}_${sanitizedName}_${uniqueHash}.${fileExtension}`;
+
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(uniqueFileName, image, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: image.type, // Preserve original content type
+        });
+
+      if (error) {
+        throw new Error(`Error uploading ${image.name}: ${error.message}`);
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(bucketName).getPublicUrl(data.path);
+
+      uploadedUrls.push({
+        url: publicUrl,
+        originalName: image.name,
+        storedName: uniqueFileName,
+        bucket: bucketName,
+        path: data.path,
+      });
+    }
+
+    return uploadedUrls;
+  } catch (error: any) {
     console.error("Error uploading images:", error);
-    throw error;
+    throw new Error(`Görüntü yüklenirken hata oluştu: ${error.message}`);
   }
 }
 

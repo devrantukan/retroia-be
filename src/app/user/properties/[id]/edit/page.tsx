@@ -18,6 +18,7 @@ const EditPropertyPage = async ({ params }: Props) => {
     agents,
     countries,
     cities,
+    deedStatuses,
     // districts,
     //  neighborhoods,
     // descriptorCategories,
@@ -45,6 +46,7 @@ const EditPropertyPage = async ({ params }: Props) => {
     }),
     prisma.country.findMany(),
     prisma.city.findMany(),
+    prisma.propertyDeedStatus.findMany(),
     // prisma.district.findMany(),
     //  prisma.neighborhood.findMany(),
     // prisma.propertyDescriptorCategory.findMany({
@@ -123,6 +125,7 @@ const EditPropertyPage = async ({ params }: Props) => {
       subTypes={propertySubTypes}
       statuses={propertyStatuses}
       contracts={propertyContracts}
+      deedStatuses={deedStatuses}
       property={property}
       isEdit={true}
       // descriptorCategories={descriptorCategories}

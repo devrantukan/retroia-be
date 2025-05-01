@@ -125,18 +125,27 @@ const Contact = ({
         )}
         {role == "site-admin" && (
           <Select
-            {...register("agentId", { setValueAs: (v: any) => Number(v) })}
+            {...register("agentId", { valueAsNumber: true })}
             errorMessage={errors.agentId?.message}
             isInvalid={!!errors.agentId}
             label="Gayrimenkul Danışmanı"
             selectionMode="single"
             name="agentId"
             {...(getValues().agentId
-              ? { defaultSelectedKeys: [getValues().agentId.toString()] }
+              ? {
+                  defaultSelectedKeys: [getValues().agentId.toString()],
+                }
               : {})}
+            onChange={(e) => {
+              setValue("agentId", Number(e.target.value));
+            }}
           >
             {agents.map((item) => (
-              <SelectItem key={item.id} value={item.id}>
+              <SelectItem
+                key={item.id}
+                value={item.id}
+                textValue={`${item.name} ${item.surname}`}
+              >
                 {item.name} {item.surname}
               </SelectItem>
             ))}

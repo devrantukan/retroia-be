@@ -14,6 +14,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/16/solid";
 import { PropertyImage } from "@prisma/client";
 import { useFormContext } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
+import ImageResizer from "./ImageResizer";
 
 interface PictureProps {
   images: File[];
@@ -92,9 +93,10 @@ const Picture = ({
           order: idx,
         })) || [];
 
+    // For new images, they are already resized
     const newImages = images.map((file, idx) => ({
       id: `new-${idx}`,
-      url: file instanceof File ? URL.createObjectURL(file) : file,
+      url: URL.createObjectURL(file),
       type: "new" as const,
       originalData: file,
       order: existing.length + idx,
@@ -104,6 +106,14 @@ const Picture = ({
 
     // Cleanup URLs
     return () => {
+      // Cleanup existing image URLs
+      existing.forEach((img) => {
+        if (img.url.startsWith("blob:")) {
+          URL.revokeObjectURL(img.url);
+        }
+      });
+
+      // Cleanup new image URLs
       newImages.forEach((img) => {
         if (img.url.startsWith("blob:")) {
           URL.revokeObjectURL(img.url);
@@ -111,6 +121,37 @@ const Picture = ({
       });
     };
   }, [existingImages, images, deletedImages]);
+
+  const [resizingImage, setResizingImage] = useState<{
+    file: File;
+    bucket: "propertyImages" | "property-images" | "thumbnails-property-images";
+  } | null>(null);
+
+  const handleResizedImage = useCallback(
+    (resizedFile: File) => {
+      if (!resizingImage) return;
+
+      // Update the image in the images array
+      const newImages = [...images, resizedFile];
+      setImages(newImages);
+
+      // Update the unified images
+      setUnifiedImages((prev) => [
+        ...prev,
+        {
+          id: `new-${Date.now()}`,
+          url: URL.createObjectURL(resizedFile),
+          type: "new" as const,
+          originalData: resizedFile,
+          order: prev.length,
+          isLoading: false,
+        },
+      ]);
+
+      setResizingImage(null);
+    },
+    [images, resizingImage, setImages]
+  );
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -120,70 +161,99 @@ const Picture = ({
     setIsUploading(true);
 
     const newFiles = Array.from(files);
+    const processedFiles: File[] = [];
 
-    // Add new files with loading state
-    const newUnifiedImages = newFiles.map((file, idx) => ({
-      id: `new-${Date.now()}-${idx}`,
-      url: URL.createObjectURL(file),
-      type: "new" as const,
-      originalData: file,
-      order: unifiedImages.length + idx,
-      isLoading: true,
-    }));
-
-    // Update unified images with loading state, filtering out deleted images
-    setUnifiedImages((prev) => {
-      const activeImages = prev.filter((img) => {
-        if (img.type === "existing") {
-          const originalImage = img.originalData as PropertyImage;
-          return !deletedImages.includes(originalImage.id);
-        }
-        return true;
-      });
-      return [...activeImages, ...newUnifiedImages];
-    });
-
-    // Process files
     try {
-      // Simulate file processing delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Process each file
+      for (const file of newFiles) {
+        // Resize for display and storage (1920x1080)
+        const resizedImage = await resizeImage(file, 1920, 1080);
 
-      // Update images array
-      setImages([...images, ...newFiles]);
+        // Add to unified images for display
+        setUnifiedImages((prev) => [
+          ...prev,
+          {
+            id: `new-${Date.now()}`,
+            url: URL.createObjectURL(resizedImage),
+            type: "new" as const,
+            originalData: resizedImage, // Store resized image as originalData
+            order: prev.length,
+            isLoading: false,
+          },
+        ]);
 
-      // Remove loading state and filter out deleted images
-      setUnifiedImages((prev) => {
-        const activeImages = prev.filter((img) => {
-          if (img.type === "existing") {
-            const originalImage = img.originalData as PropertyImage;
-            return !deletedImages.includes(originalImage.id);
-          }
-          return true;
-        });
-        return activeImages.map((img) =>
-          newUnifiedImages.some((newImg) => newImg.id === img.id)
-            ? { ...img, isLoading: false }
-            : img
-        );
-      });
+        // Store the resized image instead of original
+        processedFiles.push(resizedImage);
+      }
+
+      // Update images array with resized files
+      setImages([...images, ...processedFiles]);
     } catch (error) {
       console.error("Error processing files:", error);
-      // Remove failed uploads and filter out deleted images
-      setUnifiedImages((prev) => {
-        const activeImages = prev.filter((img) => {
-          if (img.type === "existing") {
-            const originalImage = img.originalData as PropertyImage;
-            return !deletedImages.includes(originalImage.id);
-          }
-          return true;
-        });
-        return activeImages.filter(
-          (img) => !newUnifiedImages.some((newImg) => newImg.id === img.id)
-        );
-      });
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const resizeImage = async (
+    file: File,
+    maxWidth: number,
+    maxHeight: number
+  ): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate new dimensions while maintaining aspect ratio
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width *= ratio;
+          height *= ratio;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Could not get canvas context"));
+          return;
+        }
+
+        // Set image smoothing for better quality
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        // Draw the image
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to blob with high quality
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Could not create blob"));
+              return;
+            }
+            const resizedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            resolve(resizedFile);
+          },
+          file.type,
+          0.95 // High quality
+        );
+      };
+
+      img.onerror = () => {
+        reject(new Error("Error loading image"));
+      };
+    });
   };
 
   const handleDelete = (
@@ -200,7 +270,8 @@ const Picture = ({
     } else {
       // Handle new image deletion
       const newImages = [...images];
-      newImages.splice(index, 1);
+      // Remove all three versions (1920x1080, thumbnail, and original)
+      newImages.splice(index, 3);
       setImages(newImages);
     }
   };
@@ -293,6 +364,14 @@ const Picture = ({
           </div>
         </div>
       )}
+      {resizingImage && (
+        <ImageResizer
+          image={resizingImage.file}
+          targetBucket={resizingImage.bucket}
+          onResize={handleResizedImage}
+          onCancel={() => setResizingImage(null)}
+        />
+      )}
       <FileInput multiple={true} onSelect={handleFileSelect} className="mb-6" />
       <div className="grid grid-cols-1 gap-4" aria-label="Property Images Grid">
         <div
@@ -308,14 +387,16 @@ const Picture = ({
               onDelete={() => {
                 if (image.type === "existing") {
                   const originalImage = image.originalData as PropertyImage;
-                  setDeletedImages([...deletedImages, originalImage.id]);
+                  handleDelete(index, originalImage.id);
                 } else {
-                  // Handle new image deletion
-                  const newImages = images.filter((_, i) => i !== index);
-                  setImages(newImages);
+                  // Find the index in the images array
+                  const imageIndex = images.findIndex(
+                    (img) => img === image.originalData
+                  );
+                  if (imageIndex !== -1) {
+                    handleDelete(imageIndex);
+                  }
                 }
-                // Update unified images by filtering out the deleted image
-                setUnifiedImages((prev) => prev.filter((_, i) => i !== index));
               }}
               onMoveLeft={
                 index > 0 ? (e) => moveImage(index, index - 1, e) : undefined

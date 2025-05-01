@@ -10,11 +10,13 @@ import {
   Textarea,
   cn,
 } from "@nextui-org/react";
+
 import {
   PropertyStatus,
   PropertyType,
   PropertySubType,
   PropertyContract,
+  PropertyDeedStatus,
 } from "@prisma/client";
 import React, { useEffect } from "react";
 import { useForm, useFormContext, useFormState } from "react-hook-form";
@@ -32,6 +34,7 @@ interface Props {
   subTypes: PropertySubType[];
   contracts: PropertyContract[];
   statuses: PropertyStatus[];
+  deedStatuses: PropertyDeedStatus[];
   next: () => void;
 }
 const Basic = (props: Props) => {
@@ -41,15 +44,24 @@ const Basic = (props: Props) => {
     trigger,
     getValues,
     setValue,
+    watch,
   } = useFormContext<AddPropertyInputType>();
 
   const [typeId, setTypeId] = React.useState<number | undefined>(undefined);
-
   const [subTypeId, setSubTypeId] = React.useState<number | undefined>(
     getValues().subTypeId
   );
-
   const [description, setDescription] = React.useState("");
+
+  // Watch for changes in contractId and subTypeId
+  const contractId = watch("contractId");
+  const currentSubTypeId = watch("subTypeId");
+  const isSatilik =
+    props.contracts.find((c) => c.slug === "satilik")?.id ===
+    Number(contractId);
+  const isMustakilEv =
+    props.subTypes.find((st) => st.id === Number(currentSubTypeId))?.value ===
+    "Müstakil ev";
 
   useEffect(() => {
     const values = getValues();
@@ -58,14 +70,19 @@ const Basic = (props: Props) => {
     }
 
     if (values.subTypeId) {
-      // console.log(values.subTypeId);
       setValue("subTypeId", values.subTypeId);
       setSubTypeId(values.subTypeId);
     }
     if (values.description) {
       setDescription(values.description);
     }
-  }, [getValues, setValue]);
+
+    // Set default values for floor and totalFloor if it's a Müstakil ev
+    if (isMustakilEv) {
+      setValue("propertyFeature.floor", 0);
+      setValue("propertyFeature.totalFloor", 0);
+    }
+  }, [getValues, setValue, isMustakilEv]);
 
   //console.log("tid", typeId);
   //console.log("stid", subTypeId);
@@ -79,6 +96,7 @@ const Basic = (props: Props) => {
         "subTypeId",
         "contractId",
         "statusId",
+        "deedStatusId",
         "price",
         "discountedPrice",
       ])
@@ -189,6 +207,30 @@ const Basic = (props: Props) => {
             </SelectItem>
           ))}
         </Select>
+
+        {isSatilik && (
+          <Select
+            {...register("deedStatusId", {
+              setValueAs: (v: any) => v.toString(),
+            })}
+            errorMessage={errors.deedStatusId?.message}
+            isInvalid={!!errors.deedStatusId}
+            label="Tapu Durumu"
+            selectionMode="single"
+            name="deedStatusId"
+            defaultSelectedKeys={
+              getValues().deedStatusId
+                ? [getValues().deedStatusId.toString()]
+                : undefined
+            }
+          >
+            {props.deedStatuses.map((item) => (
+              <SelectItem key={item.id} value={item.id}>
+                {item.value}
+              </SelectItem>
+            ))}
+          </Select>
+        )}
 
         <Select
           {...register("typeId", { setValueAs: (v: any) => v.toString() })}

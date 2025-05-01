@@ -13,6 +13,7 @@ const AddPropertyPage = async () => {
     agents,
     countries,
     cities,
+    deedStatuses,
     // districts,
     // neighborhoods,
     // descriptorCategories,
@@ -24,6 +25,7 @@ const AddPropertyPage = async () => {
     prisma.officeWorker.findMany(),
     prisma.country.findMany(),
     prisma.city.findMany(),
+    prisma.propertyDeedStatus.findMany(),
     // prisma.district.findMany(),
     // prisma.neighborhood.findMany(),
     // prisma.propertyDescriptorCategory.findMany({
@@ -101,6 +103,7 @@ const AddPropertyPage = async () => {
       subTypes={propertySubTypes}
       statuses={propertyStatuses}
       contracts={propertyContracts}
+      deedStatuses={deedStatuses}
       // descriptorCategories={descriptorCategories}
     />
   );
