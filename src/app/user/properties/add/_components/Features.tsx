@@ -138,6 +138,20 @@ const Features = (props: Props) => {
                 }
               : {})}
           />
+          <Input
+            {...register("propertyFeature.grossArea", { valueAsNumber: true })}
+            errorMessage={errors.propertyFeature?.grossArea?.message}
+            isInvalid={!!errors.propertyFeature?.grossArea}
+            label="Brüt Alan (m²)"
+            type="number"
+            {...(getValues().propertyFeature &&
+            getValues().propertyFeature.grossArea
+              ? {
+                  defaultValue:
+                    getValues().propertyFeature.grossArea.toString(),
+                }
+              : {})}
+          />
         </div>
         <div className="lg:w-1/2 w-full flex flex-col gap-4">
           {!isMustakilEv && (
