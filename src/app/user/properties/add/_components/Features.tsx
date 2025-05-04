@@ -7,6 +7,7 @@ import {
   Select,
   SelectItem,
   cn,
+  Switch,
 } from "@nextui-org/react";
 import React, { useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
@@ -51,9 +52,11 @@ const Features = (props: Props) => {
     setValue,
   } = useFormContext<AddPropertyInputType>();
 
-  // Watch for subTypeId changes
+  // Watch for subTypeId and typeId changes
   const subTypeId = watch("subTypeId");
+  const typeId = watch("typeId");
   const isMustakilEv = Number(subTypeId) === 5;
+  const isType3 = Number(typeId) === 3;
 
   // Set default values for floor and totalFloor if it's a Müstakil ev
   useEffect(() => {
@@ -77,6 +80,8 @@ const Features = (props: Props) => {
         "propertyFeature.bedrooms",
         "propertyFeature.floor",
         "propertyFeature.totalFloor",
+        "propertyFeature.parcelNumber",
+        "propertyFeature.blockNumber",
       ])
     )
       props.next();
@@ -86,46 +91,50 @@ const Features = (props: Props) => {
     <Card className={cn("p-2 flex flex-col gap-4", props.className)}>
       <div className="flex lg:flex-row flex-col gap-4">
         <div className="lg:w-1/2 w-full flex flex-col gap-4">
-          <Select
-            {...register("propertyFeature.bedrooms")}
-            errorMessage={errors.propertyFeature?.bedrooms?.message}
-            isInvalid={!!errors.propertyFeature?.bedrooms}
-            label="Oda Sayısı"
-            selectionMode="single"
-            name="propertyFeature.bedrooms"
-            defaultSelectedKeys={
-              getValues().propertyFeature &&
-              getValues().propertyFeature.bedrooms
-                ? [getValues().propertyFeature.bedrooms]
-                : undefined
-            }
-          >
-            {bedrooms.map((item) => (
-              <SelectItem key={item.id} value={item.value}>
-                {item.value}
-              </SelectItem>
-            ))}
-          </Select>
-          <Select
-            {...register("propertyFeature.bathrooms")}
-            errorMessage={errors.propertyFeature?.bathrooms?.message}
-            isInvalid={!!errors.propertyFeature?.bathrooms}
-            label="Banyo Sayısı"
-            selectionMode="single"
-            name="propertyFeature.bathrooms"
-            defaultSelectedKeys={
-              getValues().propertyFeature &&
-              getValues().propertyFeature.bathrooms
-                ? [getValues().propertyFeature.bathrooms]
-                : undefined
-            }
-          >
-            {bathrooms.map((item) => (
-              <SelectItem key={item.id} value={item.value}>
-                {item.value}
-              </SelectItem>
-            ))}
-          </Select>
+          {!isType3 && (
+            <>
+              <Select
+                {...register("propertyFeature.bedrooms")}
+                errorMessage={errors.propertyFeature?.bedrooms?.message}
+                isInvalid={!!errors.propertyFeature?.bedrooms}
+                label="Oda Sayısı"
+                selectionMode="single"
+                name="propertyFeature.bedrooms"
+                defaultSelectedKeys={
+                  getValues().propertyFeature &&
+                  getValues().propertyFeature.bedrooms
+                    ? [getValues().propertyFeature.bedrooms]
+                    : undefined
+                }
+              >
+                {bedrooms.map((item) => (
+                  <SelectItem key={item.id} value={item.value}>
+                    {item.value}
+                  </SelectItem>
+                ))}
+              </Select>
+              <Select
+                {...register("propertyFeature.bathrooms")}
+                errorMessage={errors.propertyFeature?.bathrooms?.message}
+                isInvalid={!!errors.propertyFeature?.bathrooms}
+                label="Banyo Sayısı"
+                selectionMode="single"
+                name="propertyFeature.bathrooms"
+                defaultSelectedKeys={
+                  getValues().propertyFeature &&
+                  getValues().propertyFeature.bathrooms
+                    ? [getValues().propertyFeature.bathrooms]
+                    : undefined
+                }
+              >
+                {bathrooms.map((item) => (
+                  <SelectItem key={item.id} value={item.value}>
+                    {item.value}
+                  </SelectItem>
+                ))}
+              </Select>
+            </>
+          )}
           <Input
             {...register("propertyFeature.area", { valueAsNumber: true })}
             errorMessage={errors.propertyFeature?.area?.message}
@@ -154,7 +163,7 @@ const Features = (props: Props) => {
           />
         </div>
         <div className="lg:w-1/2 w-full flex flex-col gap-4">
-          {!isMustakilEv && (
+          {!isMustakilEv && !isType3 && (
             <>
               <Input
                 {...register("propertyFeature.floor", { valueAsNumber: true })}
@@ -188,6 +197,104 @@ const Features = (props: Props) => {
               />
             </>
           )}
+          <div className=" flex-col gap-4 hidden">
+            <Controller
+              name="propertyFeature.hasSwimmingPool"
+              control={control}
+              defaultValue={false}
+              render={({ field: { onChange, value } }) => (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    isSelected={value}
+                    onValueChange={onChange}
+                    size="sm"
+                  />
+                  <span>Havuz</span>
+                </div>
+              )}
+            />
+            <Controller
+              name="propertyFeature.hasGardenYard"
+              control={control}
+              defaultValue={false}
+              render={({ field: { onChange, value } }) => (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    isSelected={value}
+                    onValueChange={onChange}
+                    size="sm"
+                  />
+                  <span>Bahçe</span>
+                </div>
+              )}
+            />
+            <Controller
+              name="propertyFeature.hasBalcony"
+              control={control}
+              defaultValue={false}
+              render={({ field: { onChange, value } }) => (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    isSelected={value}
+                    onValueChange={onChange}
+                    size="sm"
+                  />
+                  <span>Balkon</span>
+                </div>
+              )}
+            />
+          </div>
+          {isType3 && (
+            <>
+              <Input
+                {...register("propertyFeature.parcelNumber", {
+                  valueAsNumber: true,
+                })}
+                errorMessage={errors.propertyFeature?.parcelNumber?.message}
+                isInvalid={!!errors.propertyFeature?.parcelNumber}
+                label="Parsel Numarası"
+                type="number"
+                {...(getValues().propertyFeature &&
+                getValues().propertyFeature.parcelNumber !== undefined
+                  ? {
+                      defaultValue:
+                        getValues().propertyFeature!.parcelNumber!.toString(),
+                    }
+                  : {})}
+              />
+              <Input
+                {...register("propertyFeature.blockNumber", {
+                  valueAsNumber: true,
+                })}
+                errorMessage={errors.propertyFeature?.blockNumber?.message}
+                isInvalid={!!errors.propertyFeature?.blockNumber}
+                label="Ada Numarası"
+                type="number"
+                {...(getValues().propertyFeature &&
+                getValues().propertyFeature.blockNumber !== undefined
+                  ? {
+                      defaultValue:
+                        getValues().propertyFeature!.blockNumber!.toString(),
+                    }
+                  : {})}
+              />
+              <Controller
+                name="propertyFeature.zoningStatus"
+                control={control}
+                defaultValue={false}
+                render={({ field: { onChange, value } }) => (
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      isSelected={value}
+                      onValueChange={onChange}
+                      size="sm"
+                    />
+                    <span>İmar Durumu</span>
+                  </div>
+                )}
+              />
+            </>
+          )}
         </div>
       </div>
       <div className="flex justify-center col-span-3 gap-3">
@@ -211,4 +318,5 @@ const Features = (props: Props) => {
     </Card>
   );
 };
+
 export default Features;

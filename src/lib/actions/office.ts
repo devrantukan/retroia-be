@@ -5,14 +5,20 @@ import { revalidatePath } from "next/cache";
 import { OfficeFormType } from "../validations/office";
 
 const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL;
-const REVALIDATION_TOKEN = process.env.NEXT_PUBLIC_REVALIDATION_TOKEN;
+const REVALIDATION_TOKEN = process.env.NEXT_PUBLIC_REVALIDATE_TOKEN;
 
 async function revalidateFrontend(path: string) {
   try {
-    const response = await fetch(`${FRONTEND_URL}/api/revalidate`, {
+    if (!FRONTEND_URL || !REVALIDATION_TOKEN) {
+      console.warn("Missing revalidation environment variables");
+      return;
+    }
+    console.log("revalidating", `${FRONTEND_URL}/api/revalidate/`);
+    const response = await fetch(`${FRONTEND_URL}/api/revalidate/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${REVALIDATION_TOKEN}`,
       },
       body: JSON.stringify({
         path,
@@ -21,15 +27,20 @@ async function revalidateFrontend(path: string) {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to revalidate: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`Revalidation failed for ${path}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
     }
   } catch (error) {
-    console.error("Revalidation error:", error);
+    console.error(`Revalidation error for ${path}:`, error);
   }
 }
 
 export async function saveOffice(
-  data: OfficeFormType & { avatarUrl?: string }
+  data: OfficeFormType & { avatarUrl?: string; images?: { url: string }[] }
 ) {
   try {
     const office = await prisma.office.create({
@@ -55,19 +66,20 @@ export async function saveOffice(
         youtubeAccountId: data.youtubeAccountId || "",
         webUrl: data.webUrl || "",
         slug: data.slug || "",
+        images: {
+          create: data.images?.map((img) => ({ url: img.url })) || [],
+        },
+      },
+      include: {
+        images: true,
       },
     });
 
-    // Revalidate admin path
-    revalidatePath("/admin/offices");
+    // Revalidate all relevant paths
 
-    // Revalidate frontend paths using the helper function
-    await Promise.all([
-      revalidateFrontend("/"),
-      revalidateFrontend("/ofislerimiz"),
-      revalidateFrontend(`/ofis/${office.id}/${office.slug}`),
-      revalidateFrontend("/iletisim"),
-    ]);
+    revalidateFrontend("/"),
+      revalidateFrontend("/ofislerimiz/"),
+      revalidateFrontend(`/ofis/${office.id}/${office.slug}/`);
 
     return office;
   } catch (error) {
@@ -78,9 +90,24 @@ export async function saveOffice(
 
 export async function updateOffice(
   id: number,
-  data: OfficeFormType & { avatarUrl?: string }
+  data: OfficeFormType & {
+    avatarUrl?: string;
+    images?: { url: string }[];
+    deletedImages?: number[];
+  }
 ) {
   try {
+    // First, delete any removed images
+    if (data.deletedImages?.length) {
+      await prisma.officeImage.deleteMany({
+        where: {
+          id: {
+            in: data.deletedImages,
+          },
+        },
+      });
+    }
+
     const office = await prisma.office.update({
       where: { id },
       data: {
@@ -103,19 +130,21 @@ export async function updateOffice(
         youtubeAccountId: data.youtubeAccountId || "",
         avatarUrl: data.avatarUrl || "",
         slug: data.slug,
+        images: {
+          deleteMany: {},
+          create: data.images?.map((img) => ({ url: img.url })) || [],
+        },
+      },
+      include: {
+        images: true,
       },
     });
 
-    // Revalidate admin path
+    // Revalidate all relevant paths
     revalidatePath("/admin/offices");
-
-    // Revalidate frontend paths using the helper function
-    await Promise.all([
-      revalidateFrontend("/"),
-      revalidateFrontend("/ofislerimiz"),
-      revalidateFrontend(`/ofis/${id}/${data.slug}`),
-      revalidateFrontend("/iletisim"),
-    ]);
+    revalidatePath("/");
+    revalidateFrontend("/ofislerimiz/");
+    revalidateFrontend(`/ofis/${id}/${data.slug}/`);
 
     return office;
   } catch (error) {
@@ -131,16 +160,11 @@ export async function deleteOffice(id: number) {
       select: { slug: true }, // Get the slug for path revalidation
     });
 
-    // Revalidate admin path
+    // Revalidate all relevant paths
     revalidatePath("/admin/offices");
-
-    // Revalidate frontend paths using the helper function
-    await Promise.all([
-      revalidateFrontend("/"),
-      revalidateFrontend("/ofislerimiz"),
-      revalidateFrontend(`/ofis/${id}/${office.slug}`),
-      revalidateFrontend("/iletisim"),
-    ]);
+    revalidatePath("/");
+    revalidateFrontend("/ofislerimiz");
+    revalidateFrontend(`/ofis/${id}/${office.slug}`);
 
     return { success: true };
   } catch (error) {

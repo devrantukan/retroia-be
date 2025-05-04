@@ -98,6 +98,26 @@ const PropertiesTable = ({
         throw new Error("Failed to update status");
       }
 
+      // Update Typesense index
+      const typesenseResponse = await fetch("/api/typesense/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          propertyId,
+          isPublished,
+        }),
+      });
+
+      if (!typesenseResponse.ok) {
+        console.error(
+          "Failed to update Typesense:",
+          await typesenseResponse.text()
+        );
+        // Don't throw here, just log the error
+      }
+
       // Revalidate the property page after status change
       try {
         const response = await fetch(process.env.NEXT_PUBLIC_REVALIDATE_URL!, {
@@ -106,7 +126,7 @@ const PropertiesTable = ({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            path: `/portfoy/${propertyId.toString()}`,
+            path: `/portfoy/${propertyId.toString()}/`,
             token: process.env.NEXT_PUBLIC_REVALIDATE_TOKEN,
           }),
         });

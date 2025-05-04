@@ -97,10 +97,10 @@ export async function createOfficeWorker(data: OfficeWorkerFormType) {
     // Revalidate frontend paths
     await Promise.all([
       revalidateFrontend("/"),
-      revalidateFrontend("/ofislerimiz"),
-      revalidateFrontend(`/ofis/${worker.office.id}/${worker.office.slug}`),
+      revalidateFrontend("/ofislerimiz/"),
+      revalidateFrontend(`/ofis/${worker.office.id}/${worker.office.slug}/`),
       revalidateFrontend(
-        `/ofis/${worker.office.id}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}`
+        `/ofis/${worker.office.id}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`
       ),
     ]);
 
@@ -151,10 +151,10 @@ export async function updateOfficeWorker(
     // Revalidate frontend paths with proper office data
     await Promise.all([
       revalidateFrontend("/"),
-      revalidateFrontend("/ofislerimiz"),
-      revalidateFrontend(`/ofis/${worker.office.id}/${worker.office.slug}`),
+      revalidateFrontend("/ofislerimiz/"),
+      revalidateFrontend(`/ofis/${worker.office.id}/${worker.office.slug}/`),
       revalidateFrontend(
-        `/ofis/${worker.office.id}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}`
+        `/ofis/${worker.office.id}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`
       ),
     ]);
 
@@ -178,9 +178,9 @@ export async function deleteOfficeWorker(id: number) {
   });
 
   revalidatePath("/admin/office-workers");
-  revalidateFrontend(`/ofis/${worker.officeId}/${worker.office.slug}`);
+  revalidateFrontend(`/ofis/${worker.officeId}/${worker.office.slug}/`);
   revalidateFrontend(
-    `/ofis/${worker.officeId}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}`
+    `/ofis/${worker.officeId}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`
   );
   revalidateFrontend(`/`);
   return worker;

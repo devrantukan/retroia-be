@@ -11,10 +11,10 @@ import { saveOffice, updateOffice } from "@/lib/actions/office";
 import slugify from "slugify";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
-import OfficeImageUploader from "./OfficeImageUploader";
 import { OfficeImage } from "@prisma/client";
 import { uploadImages } from "@/lib/upload";
 import LocationPicker from "./LocationPicker";
+import OfficeImageUploader from "./OfficeImagesUploader";
 
 const QuillEditor = dynamic(() => import("@/app/components/RichTextEditor"), {
   ssr: false,
@@ -219,6 +219,8 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
         ...data,
         slug,
         avatarUrl: avatarUrl || "",
+        images: existingImages.map((img) => ({ url: img.url })),
+        deletedImages: deletedImages,
       };
 
       if (mode === "edit" && office) {
@@ -243,6 +245,11 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
     setValue("latitude", lat);
     setValue("longitude", lng);
     setMarkerPosition({ lat, lng });
+  };
+
+  const handleZoomChange = (zoom: number) => {
+    // You can store zoom level in state if needed
+    console.log("Zoom level changed:", zoom);
   };
 
   return (
@@ -374,6 +381,7 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
             latitude={watch("latitude")}
             longitude={watch("longitude")}
             onLocationChange={handleMapClick}
+            onZoomChange={handleZoomChange}
           />
         </div>
 
@@ -386,6 +394,7 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
           errorMessage={errors.latitude?.message}
           isInvalid={!!errors.latitude}
           isReadOnly
+          value={String(watch("latitude"))}
         />
 
         <Input
@@ -397,6 +406,7 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
           errorMessage={errors.longitude?.message}
           isInvalid={!!errors.longitude}
           isReadOnly
+          value={String(watch("longitude"))}
         />
       </div>
 
@@ -449,12 +459,25 @@ export default function OfficeForm({ mode, office }: OfficeFormProps) {
 
       <div className="mt-6">
         <OfficeImageUploader
-          images={images}
-          setImages={setImages}
-          deletedImages={deletedImages}
-          setDeletedImages={setDeletedImages}
-          existingImages={existingImages}
-          setExistingImages={setExistingImages}
+          currentImages={existingImages}
+          onImagesUpload={(images) => {
+            // Find deleted images by comparing existing IDs with new IDs
+            const deletedImageIds = existingImages
+              .filter((img) => !images.some((newImg) => newImg.id === img.id))
+              .map((img) => img.id);
+
+            // Add deleted image IDs to the deletedImages array
+            setDeletedImages((prev) => [...prev, ...deletedImageIds]);
+
+            // Update existing images with officeId
+            const updatedImages = images.map((img) => ({
+              ...img,
+              officeId: office?.id || 0,
+            }));
+            setExistingImages(updatedImages);
+          }}
+          projectName={watch("name")}
+          label="Ofis Görselleri"
         />
       </div>
 

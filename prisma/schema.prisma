@@ -76,7 +76,10 @@ model PropertyFeature {
   floor           Int
   totalFloor      Int
   area            Int
-  grossArea       Int   
+  grossArea       Int  
+  zoningStatus    Boolean
+  parcelNumber    Int
+  blockNumber     Int
   hasSwimmingPool Boolean
   hasGardenYard   Boolean
   hasBalcony      Boolean

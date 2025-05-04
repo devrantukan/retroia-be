@@ -111,6 +111,9 @@ const AddPropertyForm = ({ role, isEdit = false, ...props }: Props) => {
             hasSwimmingPool: props.property.feature.hasSwimmingPool,
             hasGardenYard: props.property.feature.hasGardenYard,
             hasBalcony: props.property.feature.hasBalcony,
+            zoningStatus: props.property.feature.zoningStatus,
+            parcelNumber: props.property.feature.parcelNumber,
+            blockNumber: props.property.feature.blockNumber,
           }
         : undefined,
       description: props.property?.description ?? undefined,
