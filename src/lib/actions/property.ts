@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { writeFile } from "fs/promises";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 
 if (
   !process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -19,6 +20,41 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL;
+const REVALIDATION_TOKEN = process.env.NEXT_PUBLIC_REVALIDATE_TOKEN;
+
+async function revalidateFrontend(path: string) {
+  try {
+    if (!FRONTEND_URL || !REVALIDATION_TOKEN) {
+      console.warn("Missing revalidation environment variables");
+      return;
+    }
+
+    const response = await fetch(`${FRONTEND_URL}/api/revalidate/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${REVALIDATION_TOKEN}`,
+      },
+      body: JSON.stringify({
+        path,
+        token: REVALIDATION_TOKEN,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Revalidation failed for ${path}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
+    }
+  } catch (error) {
+    console.error(`Revalidation error for ${path}:`, error);
+  }
+}
 
 export async function managePropertyDescriptor(descriptorId: number) {
   const descriptorDetails = await prisma.propertyDescriptor.findUnique({
@@ -388,4 +424,18 @@ export async function getPropertyById(id: string) {
       },
     },
   });
+}
+
+export async function revalidateProperty(propertyId: string) {
+  try {
+    // Revalidate both the property page and home page
+    await Promise.all([
+      revalidateFrontend(`/portfoy/${propertyId}/`),
+      revalidateFrontend("/"),
+    ]);
+    return true;
+  } catch (error) {
+    console.error("Error revalidating property:", error);
+    return false;
+  }
 }

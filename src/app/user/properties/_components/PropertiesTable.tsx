@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { updatePublishingStatus } from "@/app/actions/updatePropertyStatus";
+import { revalidateProperty } from "@/lib/actions/property";
 import { toast } from "react-toastify";
 import { Input } from "@nextui-org/input";
 import { MagnifyingGlassIcon } from "@heroicons/react/16/solid";
@@ -82,13 +83,6 @@ const PropertiesTable = ({
     isPublished: boolean
   ) => {
     try {
-      console.log(
-        "Updating status for property:",
-        propertyId,
-        "to:",
-        isPublished ? "PUBLISHED" : "PENDING"
-      );
-
       const result = await updatePublishingStatus(
         propertyId.toString(),
         isPublished ? "PUBLISHED" : "PENDING"
@@ -118,49 +112,8 @@ const PropertiesTable = ({
         // Don't throw here, just log the error
       }
 
-      // Revalidate the property page after status change
-      try {
-        const response = await fetch(process.env.NEXT_PUBLIC_REVALIDATE_URL!, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            path: `/portfoy/${propertyId.toString()}/`,
-            token: process.env.NEXT_PUBLIC_REVALIDATE_TOKEN,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error("Revalidation failed:", await response.text());
-          throw new Error("Revalidation failed");
-        }
-
-        const revalidateHome = await fetch(
-          process.env.NEXT_PUBLIC_REVALIDATE_URL!,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              path: `/`,
-              token: process.env.NEXT_PUBLIC_REVALIDATE_TOKEN,
-            }),
-          }
-        );
-
-        if (!revalidateHome.ok) {
-          console.error(
-            "Home revalidation failed:",
-            await revalidateHome.text()
-          );
-          throw new Error("Home revalidation failed");
-        }
-      } catch (revalidateError) {
-        console.error("Revalidation error:", revalidateError);
-        // Don't throw here, just log the error
-      }
+      // Revalidate using server-side function
+      await revalidateProperty(propertyId.toString());
 
       toast.success(
         isPublished ? "İlan yayınlandı!" : "İlan yayından kaldırıldı!"
