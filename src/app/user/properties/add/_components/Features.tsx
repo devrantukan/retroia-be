@@ -93,26 +93,27 @@ const Features = (props: Props) => {
         <div className="lg:w-1/2 w-full flex flex-col gap-4">
           {!isType3 && (
             <>
-              <Select
-                {...register("propertyFeature.bedrooms")}
-                errorMessage={errors.propertyFeature?.bedrooms?.message}
-                isInvalid={!!errors.propertyFeature?.bedrooms}
-                label="Oda Sayısı"
-                selectionMode="single"
+              <Controller
                 name="propertyFeature.bedrooms"
-                defaultSelectedKeys={
-                  getValues().propertyFeature &&
-                  getValues().propertyFeature.bedrooms
-                    ? [getValues().propertyFeature.bedrooms]
-                    : undefined
-                }
-              >
-                {bedrooms.map((item) => (
-                  <SelectItem key={item.id} value={item.value}>
-                    {item.value}
-                  </SelectItem>
-                ))}
-              </Select>
+                control={control}
+                defaultValue=""
+                render={({ field: { onChange, value } }) => (
+                  <Select
+                    selectedKeys={value ? [value] : []}
+                    onSelectionChange={(keys) => onChange(Array.from(keys)[0])}
+                    errorMessage={errors.propertyFeature?.bedrooms?.message}
+                    isInvalid={!!errors.propertyFeature?.bedrooms}
+                    label="Oda sayısı"
+                    selectionMode="single"
+                  >
+                    {bedrooms.map((item) => (
+                      <SelectItem key={item.value} value={item.id}>
+                        {item.value}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                )}
+              />
               <Select
                 {...register("propertyFeature.bathrooms")}
                 errorMessage={errors.propertyFeature?.bathrooms?.message}
