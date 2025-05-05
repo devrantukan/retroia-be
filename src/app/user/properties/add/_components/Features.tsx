@@ -73,18 +73,24 @@ const Features = (props: Props) => {
       setValue("propertyFeature.totalFloor", 0);
     }
 
-    if (
-      await trigger([
-        "propertyFeature.area",
-        "propertyFeature.bathrooms",
-        "propertyFeature.bedrooms",
-        "propertyFeature.floor",
-        "propertyFeature.totalFloor",
-        "propertyFeature.parcelNumber",
-        "propertyFeature.blockNumber",
-      ])
-    )
+    // Define fields to validate based on type
+    const fieldsToValidate = isType3
+      ? [
+          "propertyFeature.area" as const,
+          "propertyFeature.parcelNumber" as const,
+          "propertyFeature.blockNumber" as const,
+        ]
+      : [
+          "propertyFeature.area" as const,
+          "propertyFeature.bathrooms" as const,
+          "propertyFeature.bedrooms" as const,
+          "propertyFeature.floor" as const,
+          "propertyFeature.totalFloor" as const,
+        ];
+
+    if (await trigger(fieldsToValidate)) {
       props.next();
+    }
   };
 
   return (
