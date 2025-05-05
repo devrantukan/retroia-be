@@ -158,7 +158,7 @@ export async function saveProperty(
       feature: {
         create: {
           ...propertyData.propertyFeature,
-          bedrooms: propertyData.propertyFeature.bedrooms.toString(),
+          bedrooms: (propertyData.propertyFeature.bedrooms ?? "").toString(),
           bathrooms: Number(propertyData.propertyFeature.bathrooms),
           floor: Number(propertyData.propertyFeature.floor),
           totalFloor: Number(propertyData.propertyFeature.totalFloor),
@@ -288,7 +288,7 @@ export async function editProperty(
             feature: {
               update: {
                 ...data.propertyFeature,
-                bedrooms: data.propertyFeature.bedrooms.toString(),
+                bedrooms: (data.propertyFeature.bedrooms ?? "").toString(),
                 bathrooms: Number(data.propertyFeature.bathrooms),
                 floor: Number(data.propertyFeature.floor),
                 totalFloor: Number(data.propertyFeature.totalFloor),

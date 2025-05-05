@@ -120,26 +120,27 @@ const Features = (props: Props) => {
                   </Select>
                 )}
               />
-              <Select
-                {...register("propertyFeature.bathrooms")}
-                errorMessage={errors.propertyFeature?.bathrooms?.message}
-                isInvalid={!!errors.propertyFeature?.bathrooms}
-                label="Banyo Sayısı"
-                selectionMode="single"
+              <Controller
                 name="propertyFeature.bathrooms"
-                defaultSelectedKeys={
-                  getValues().propertyFeature &&
-                  getValues().propertyFeature.bathrooms
-                    ? [getValues().propertyFeature.bathrooms]
-                    : undefined
-                }
-              >
-                {bathrooms.map((item) => (
-                  <SelectItem key={item.id} value={item.value}>
-                    {item.value}
-                  </SelectItem>
-                ))}
-              </Select>
+                control={control}
+                defaultValue=""
+                render={({ field: { onChange, value } }) => (
+                  <Select
+                    selectedKeys={value ? [value] : []}
+                    onSelectionChange={(keys) => onChange(Array.from(keys)[0])}
+                    errorMessage={errors.propertyFeature?.bathrooms?.message}
+                    isInvalid={!!errors.propertyFeature?.bathrooms}
+                    label="Banyo Sayısı"
+                    selectionMode="single"
+                  >
+                    {bathrooms.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.value}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                )}
+              />
             </>
           )}
           <Input
@@ -148,11 +149,7 @@ const Features = (props: Props) => {
             isInvalid={!!errors.propertyFeature?.area}
             label="Net Alan (m²)"
             type="number"
-            {...(getValues().propertyFeature && getValues().propertyFeature.area
-              ? {
-                  defaultValue: getValues().propertyFeature.area.toString(),
-                }
-              : {})}
+            defaultValue={getValues().propertyFeature?.area?.toString() ?? ""}
           />
           <Input
             {...register("propertyFeature.grossArea", { valueAsNumber: true })}
@@ -160,13 +157,9 @@ const Features = (props: Props) => {
             isInvalid={!!errors.propertyFeature?.grossArea}
             label="Brüt Alan (m²)"
             type="number"
-            {...(getValues().propertyFeature &&
-            getValues().propertyFeature.grossArea
-              ? {
-                  defaultValue:
-                    getValues().propertyFeature.grossArea.toString(),
-                }
-              : {})}
+            defaultValue={
+              getValues().propertyFeature?.grossArea?.toString() ?? ""
+            }
           />
         </div>
         <div className="lg:w-1/2 w-full flex flex-col gap-4">
@@ -261,11 +254,11 @@ const Features = (props: Props) => {
                 isInvalid={!!errors.propertyFeature?.parcelNumber}
                 label="Parsel Numarası"
                 type="number"
-                {...(getValues().propertyFeature &&
-                getValues().propertyFeature.parcelNumber !== undefined
+                {...(getValues().propertyFeature?.parcelNumber !== undefined
                   ? {
-                      defaultValue:
-                        getValues().propertyFeature!.parcelNumber!.toString(),
+                      defaultValue: String(
+                        getValues().propertyFeature.parcelNumber
+                      ),
                     }
                   : {})}
               />
@@ -277,11 +270,11 @@ const Features = (props: Props) => {
                 isInvalid={!!errors.propertyFeature?.blockNumber}
                 label="Ada Numarası"
                 type="number"
-                {...(getValues().propertyFeature &&
-                getValues().propertyFeature.blockNumber !== undefined
+                {...(getValues().propertyFeature?.blockNumber !== undefined
                   ? {
-                      defaultValue:
-                        getValues().propertyFeature!.blockNumber!.toString(),
+                      defaultValue: String(
+                        getValues().propertyFeature.blockNumber
+                      ),
                     }
                   : {})}
               />
