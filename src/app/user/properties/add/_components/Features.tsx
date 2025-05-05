@@ -73,7 +73,7 @@ const Features = (props: Props) => {
       setValue("propertyFeature.totalFloor", 0);
     }
 
-    // Define fields to validate based on type
+    // Different validation rules based on typeId
     const fieldsToValidate = isType3
       ? [
           "propertyFeature.area" as const,

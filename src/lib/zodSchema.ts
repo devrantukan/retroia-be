@@ -69,18 +69,54 @@ export const getAddPropertyFormSchema = async () => {
       longitude: z.number().optional(),
     }),
     propertyFeature: z.object({
-      bedrooms: z.string(),
-      bathrooms: z.string(),
-      floor: z.number(),
-      totalFloor: z.number(),
+      bedrooms: z.string().optional(),
+      bathrooms: z.string().optional(),
+      floor: z.preprocess(
+        (val) => {
+          if (val === "" || val === null || val === undefined) return "0";
+          return String(val);
+        },
+        z.string().transform((val) => {
+          const num = Number(val);
+          return isNaN(num) ? 0 : num;
+        })
+      ),
+      totalFloor: z.preprocess(
+        (val) => {
+          if (val === "" || val === null || val === undefined) return "0";
+          return String(val);
+        },
+        z.string().transform((val) => {
+          const num = Number(val);
+          return isNaN(num) ? 0 : num;
+        })
+      ),
       area: z.number(),
-      grossArea: z.number(),
+      grossArea: z.number().optional(),
       hasSwimmingPool: z.boolean().default(false),
       hasGardenYard: z.boolean().default(false),
       hasBalcony: z.boolean().default(false),
       zoningStatus: z.boolean().default(false),
-      parcelNumber: z.number().optional(),
-      blockNumber: z.number().optional(),
+      parcelNumber: z.preprocess(
+        (val) => {
+          if (val === "" || val === null || val === undefined) return "0";
+          return String(val);
+        },
+        z.string().transform((val) => {
+          const num = Number(val);
+          return isNaN(num) ? 0 : num;
+        })
+      ),
+      blockNumber: z.preprocess(
+        (val) => {
+          if (val === "" || val === null || val === undefined) return "0";
+          return String(val);
+        },
+        z.string().transform((val) => {
+          const num = Number(val);
+          return isNaN(num) ? 0 : num;
+        })
+      ),
     }),
     propertyDescriptors: z.object(descriptorsSchema),
     photos: z.array(z.instanceof(File)).optional(),
