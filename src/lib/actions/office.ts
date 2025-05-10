@@ -123,6 +123,8 @@ export async function updateOffice(
         districtId: data.districtId,
         neighborhoodId: data.neighborhoodId,
         zip: data.zip || "",
+        latitude: data.latitude || 0,
+        longitude: data.longitude || 0,
         xAccountId: data.xAccountId || "",
         facebookAccountId: data.facebookAccountId || "",
         linkedInAccountId: data.linkedInAccountId || "",
@@ -157,14 +159,17 @@ export async function deleteOffice(id: number) {
   try {
     const office = await prisma.office.delete({
       where: { id },
-      select: { slug: true }, // Get the slug for path revalidation
+      select: {
+        id: true,
+        slug: true,
+      },
     });
 
     // Revalidate all relevant paths
     revalidatePath("/admin/offices");
     revalidatePath("/");
-    revalidateFrontend("/ofislerimiz");
-    revalidateFrontend(`/ofis/${id}/${office.slug}`);
+    revalidateFrontend("/ofislerimiz/");
+    revalidateFrontend(`/ofis/${office.id}/${office.slug}/`);
 
     return { success: true };
   } catch (error) {
