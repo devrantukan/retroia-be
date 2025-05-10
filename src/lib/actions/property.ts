@@ -177,8 +177,9 @@ export async function saveProperty(
       },
       userId: userId,
       images: {
-        create: imagesUrls.map((img) => ({
+        create: imagesUrls.map((img, index) => ({
           url: img,
+          order: index,
         })),
       },
     },
