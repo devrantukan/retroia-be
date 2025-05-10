@@ -342,8 +342,6 @@ const Picture = ({
           }))
           .sort((a, b) => a.order - b.order);
 
-        console.log("Sending order update for images:", updatedExistingImages);
-
         // Update the database with new orders
         try {
           const response = await fetch("/api/property/update-image-order", {
@@ -361,7 +359,6 @@ const Picture = ({
           }
 
           const result = await response.json();
-          console.log("Received server response:", result);
 
           if (result.success && result.images) {
             // Sort the server response by order
@@ -392,10 +389,6 @@ const Picture = ({
               (a, b) => a.order - b.order
             );
 
-            console.log(
-              "Updating UI with verified images:",
-              sortedVerifiedImages
-            );
             setUnifiedImages(sortedVerifiedImages);
             setExistingImages(sortedServerImages);
           } else {
