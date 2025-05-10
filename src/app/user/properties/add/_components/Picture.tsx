@@ -15,6 +15,7 @@ import { PropertyImage } from "@prisma/client";
 import { useFormContext } from "react-hook-form";
 import { AddPropertyInputType } from "./AddPropertyForm";
 import ImageResizer from "./ImageResizer";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 interface PictureProps {
   images: File[];
@@ -60,14 +61,17 @@ const Picture = ({
 
   // Initialize unified images with order
   const [unifiedImages, setUnifiedImages] = useState<UnifiedImage[]>(() => {
+    // Sort existing images by their order before mapping
     const existing =
-      existingImages?.map((img, idx) => ({
-        id: `existing-${img.id}`,
-        url: img.url,
-        type: "existing" as const,
-        originalData: img,
-        order: idx,
-      })) || [];
+      existingImages
+        ?.sort((a, b) => a.order - b.order)
+        .map((img) => ({
+          id: `existing-${img.id}`,
+          url: img.url,
+          type: "existing" as const,
+          originalData: img,
+          order: img.order,
+        })) || [];
 
     const newImages = images.map((file, idx) => ({
       id: `new-${idx}`,
@@ -82,15 +86,17 @@ const Picture = ({
 
   // Update unified images when props change
   useEffect(() => {
+    // Sort existing images by their order before mapping
     const existing =
       existingImages
         ?.filter((img) => !deletedImages.includes(img.id))
-        .map((img, idx) => ({
+        .sort((a, b) => a.order - b.order)
+        .map((img) => ({
           id: `existing-${img.id}`,
           url: img.url,
           type: "existing" as const,
           originalData: img,
-          order: idx,
+          order: img.order,
         })) || [];
 
     // For new images, they are already resized
@@ -283,22 +289,37 @@ const Picture = ({
     [setSavedImageUrl]
   );
 
-  const moveImage = async (
-    fromIndex: number,
-    toIndex: number,
-    e: React.MouseEvent
-  ) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData("text/plain", index.toString());
+    e.currentTarget.classList.add("opacity-50");
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove("opacity-50");
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = parseInt(e.dataTransfer.getData("text/plain"));
+
+    if (fromIndex === toIndex) return;
 
     try {
-      // Simple array move for unified images
-      const currentImages = [...unifiedImages];
-      const [movedImage] = currentImages.splice(fromIndex, 1);
-      currentImages.splice(toIndex, 0, movedImage);
+      // Create a new array to avoid mutating state directly
+      const newUnifiedImages = [...unifiedImages];
 
-      // Update orders based on new positions
-      const updatedImages = currentImages.map((img, idx) => ({
+      // Remove the image from its current position
+      const [movedImage] = newUnifiedImages.splice(fromIndex, 1);
+
+      // Insert it at the new position
+      newUnifiedImages.splice(toIndex, 0, movedImage);
+
+      // Calculate new orders based on position
+      const updatedUnifiedImages = newUnifiedImages.map((img, idx) => ({
         ...img,
         order: idx,
         originalData:
@@ -307,28 +328,95 @@ const Picture = ({
             : img.originalData,
       }));
 
-      // Update unified images
-      setUnifiedImages(updatedImages);
+      // Update the UI immediately for better user experience
+      setUnifiedImages(updatedUnifiedImages);
 
-      // Update existing images with new orders
-      const existingWithNewOrders = updatedImages
-        .filter((img) => img.type === "existing")
-        .map((img) => img.originalData as PropertyImage);
+      // Update existing images if needed
+      if (setExistingImages) {
+        // Get only the existing images and sort them by their new order
+        const updatedExistingImages = updatedUnifiedImages
+          .filter((img) => img.type === "existing")
+          .map((img) => ({
+            ...(img.originalData as PropertyImage),
+            order: img.order,
+          }))
+          .sort((a, b) => a.order - b.order);
 
-      if (existingImages && existingWithNewOrders.length > 0) {
-        const activeExisting = existingWithNewOrders.filter(
-          (img) => !deletedImages.includes(img.id)
-        );
-        setExistingImages?.(activeExisting);
+        console.log("Sending order update for images:", updatedExistingImages);
+
+        // Update the database with new orders
+        try {
+          const response = await fetch("/api/property/update-image-order", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              images: updatedExistingImages,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to update image order");
+          }
+
+          const result = await response.json();
+          console.log("Received server response:", result);
+
+          if (result.success && result.images) {
+            // Sort the server response by order
+            const sortedServerImages = [...result.images].sort(
+              (a, b) => a.order - b.order
+            );
+
+            // Update the existing images with the verified order from the server
+            const verifiedExistingImages = updatedUnifiedImages.map((img) => {
+              if (img.type === "existing") {
+                const serverImage = sortedServerImages.find(
+                  (serverImg: PropertyImage) =>
+                    serverImg.id === (img.originalData as PropertyImage).id
+                );
+                if (serverImage) {
+                  return {
+                    ...img,
+                    order: serverImage.order,
+                    originalData: serverImage,
+                  };
+                }
+              }
+              return img;
+            });
+
+            // Sort the verified images by their order
+            const sortedVerifiedImages = [...verifiedExistingImages].sort(
+              (a, b) => a.order - b.order
+            );
+
+            console.log(
+              "Updating UI with verified images:",
+              sortedVerifiedImages
+            );
+            setUnifiedImages(sortedVerifiedImages);
+            setExistingImages(sortedServerImages);
+          } else {
+            throw new Error("Invalid response from server");
+          }
+        } catch (error) {
+          console.error("Error updating image order:", error);
+          // Revert the UI changes if the database update fails
+          setUnifiedImages(unifiedImages);
+        }
       }
 
       // Update new images array
-      const newUploaded = updatedImages
+      const updatedNewImages = updatedUnifiedImages
         .filter((img) => img.type === "new")
         .map((img) => img.originalData as File);
-      setImages(newUploaded);
+      setImages(updatedNewImages);
     } catch (error) {
       console.error("Error during image move:", error);
+      // Revert the UI changes if there's an error
+      setUnifiedImages(unifiedImages);
     }
   };
 
@@ -379,34 +467,34 @@ const Picture = ({
           aria-label="Property Images Container"
         >
           {unifiedImages.map((image, index) => (
-            <PictureCard
+            <div
               key={image.id}
-              src={image.url}
-              index={index}
-              isLoading={image.isLoading}
-              onDelete={() => {
-                if (image.type === "existing") {
-                  const originalImage = image.originalData as PropertyImage;
-                  handleDelete(index, originalImage.id);
-                } else {
-                  // Find the index in the images array
-                  const imageIndex = images.findIndex(
-                    (img) => img === image.originalData
-                  );
-                  if (imageIndex !== -1) {
-                    handleDelete(imageIndex);
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, index)}
+              className="transition-opacity"
+            >
+              <PictureCard
+                src={image.url}
+                index={index}
+                isLoading={image.isLoading}
+                onDelete={() => {
+                  if (image.type === "existing") {
+                    const originalImage = image.originalData as PropertyImage;
+                    handleDelete(index, originalImage.id);
+                  } else {
+                    const imageIndex = images.findIndex(
+                      (img) => img === image.originalData
+                    );
+                    if (imageIndex !== -1) {
+                      handleDelete(imageIndex);
+                    }
                   }
-                }
-              }}
-              onMoveLeft={
-                index > 0 ? (e) => moveImage(index, index - 1, e) : undefined
-              }
-              onMoveRight={
-                index < unifiedImages.length - 1
-                  ? (e) => moveImage(index, index + 1, e)
-                  : undefined
-              }
-            />
+                }}
+              />
+            </div>
           ))}
         </div>
       </div>
