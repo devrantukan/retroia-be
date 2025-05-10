@@ -22,7 +22,8 @@ export const projectSocialFeaturesSchema = z.object({
 });
 
 export const projectImageSchema = z.object({
-  url: z.string().url("Geçerli bir URL giriniz"),
+  url: z.string().min(1, "Görsel URL'si zorunludur"),
+  order: z.number().default(0),
 });
 
 export const projectSchema = z.object({

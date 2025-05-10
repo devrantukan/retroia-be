@@ -49,9 +49,6 @@ export default async function EditProjectPage({
       officeId: true,
       role: true,
     },
-    where: {
-      roleId: { in: [7, 6] },
-    },
   });
 
   const countries = await prisma.country.findMany({

@@ -130,7 +130,7 @@ export default function OfficeImagesUploader({
             onDragEnd={handleDragEnd}
             onDragStart={() => setIsDragging(true)}
           >
-            <StrictModeDroppable droppableId="images" direction="horizontal">
+            <StrictModeDroppable droppableId="images">
               {(
                 provided: DroppableProvided,
                 snapshot: DroppableStateSnapshot

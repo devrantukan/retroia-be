@@ -19,6 +19,8 @@ import ProjectImagesUploader from "./ProjectImagesUploader";
 import slugify from "slugify";
 import LocationPicker from "@/app/components/LocationPicker";
 import axios from "axios";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
 
 type Props = {
   project?: Prisma.ProjectGetPayload<{
@@ -32,41 +34,55 @@ type Props = {
     catalogUrl?: string | null;
   };
   offices: { id: number; name: string }[];
-  agents?: { id: number; name: string; surname: string; officeId: number }[];
+  agents?: {
+    id: number;
+    name: string;
+    surname: string;
+    officeId: number;
+    role: {
+      id: number;
+      title: string;
+      slug: string;
+    };
+  }[];
   countries: { country_name: string }[];
   cities: { city_name: string }[];
   citiesObj: Record<string, string[]>;
 };
 
-type FormData = {
+interface FormData {
   name: string;
   description: string;
   officeId: string;
   assignedAgents: string;
   publishingStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  startDate: string;
-  endDate: string;
+  startDate: Date;
+  endDate: Date;
   deedInfo: string;
   landArea: string;
   nOfUnits: string;
-  catalogUrl: string;
   slug: string;
+  catalogUrl?: string;
   location: {
     streetAddress: string;
     city: string;
     state: string;
     zip: string;
     country: string;
-    landmark: string;
+    landmark?: string;
     district: string;
     neighborhood: string;
-    latitude: number;
-    longitude: number;
+    latitude?: number;
+    longitude?: number;
   };
   unitSizes: { value: string }[];
   socialFeatures: { value: string }[];
-  images: { url: string }[];
-};
+  images: { url: string; order: number }[];
+}
+
+const QuillEditor = dynamic(() => import("@/app/components/RichTextEditor"), {
+  ssr: false,
+});
 
 const ProjectForm = ({
   project,
@@ -97,22 +113,18 @@ const ProjectForm = ({
   const [formData, setFormData] = useState<FormData>({
     name: project?.name || "",
     description: project?.description || "",
-    officeId: project?.officeId ? project.officeId.toString() : "",
+    officeId: project?.officeId.toString() || "",
     assignedAgents: project?.assignedAgents || "",
     publishingStatus:
       (project?.publishingStatus as "DRAFT" | "PUBLISHED" | "ARCHIVED") ||
       "DRAFT",
-    startDate: project?.startDate
-      ? new Date(project.startDate).toISOString().split("T")[0]
-      : "",
-    endDate: project?.endDate
-      ? new Date(project.endDate).toISOString().split("T")[0]
-      : "",
+    startDate: project?.startDate || new Date(),
+    endDate: project?.endDate || new Date(),
     deedInfo: project?.deedInfo || "",
     landArea: project?.landArea || "",
     nOfUnits: project?.nOfUnits || "",
-    catalogUrl: project?.catalogUrl || "",
     slug: project?.slug || "",
+    catalogUrl: project?.catalogUrl || "",
     location: {
       streetAddress: project?.location?.streetAddress || "",
       city: project?.location?.city || "",
@@ -122,12 +134,18 @@ const ProjectForm = ({
       landmark: project?.location?.landmark || "",
       district: project?.location?.district || "",
       neighborhood: project?.location?.neighborhood || "",
-      latitude: (project?.location as any)?.latitude || 0,
-      longitude: (project?.location as any)?.longitude || 0,
+      latitude: project?.location?.latitude || undefined,
+      longitude: project?.location?.longitude || undefined,
     },
-    unitSizes: project?.unitSizes || [{ value: "" }],
-    socialFeatures: project?.socialFeatures || [{ value: "" }],
-    images: project?.images.map((img) => ({ url: img.url })) || [],
+    unitSizes: project?.unitSizes.map((size) => ({ value: size.value })) || [],
+    socialFeatures:
+      project?.socialFeatures.map((feature) => ({ value: feature.value })) ||
+      [],
+    images:
+      project?.images.map((img, index) => ({
+        url: img.url,
+        order: index,
+      })) || [],
   });
 
   // Initialize form data and location when project changes
@@ -144,12 +162,8 @@ const ProjectForm = ({
           | "DRAFT"
           | "PUBLISHED"
           | "ARCHIVED",
-        startDate: project.startDate
-          ? new Date(project.startDate).toISOString().split("T")[0]
-          : "",
-        endDate: project.endDate
-          ? new Date(project.endDate).toISOString().split("T")[0]
-          : "",
+        startDate: project.startDate ? new Date(project.startDate) : new Date(),
+        endDate: project.endDate ? new Date(project.endDate) : new Date(),
         deedInfo: project.deedInfo || "",
         landArea: project.landArea || "",
         nOfUnits: project.nOfUnits || "",
@@ -164,12 +178,19 @@ const ProjectForm = ({
           landmark: project.location?.landmark || "",
           district: project.location?.district || "",
           neighborhood: project.location?.neighborhood || "",
-          latitude: (project.location as any)?.latitude || 0,
-          longitude: (project.location as any)?.longitude || 0,
+          latitude: project.location?.latitude || undefined,
+          longitude: project.location?.longitude || undefined,
         },
-        unitSizes: project.unitSizes || [{ value: "" }],
-        socialFeatures: project.socialFeatures || [{ value: "" }],
-        images: project.images.map((img) => ({ url: img.url })) || [],
+        unitSizes:
+          project.unitSizes.map((size) => ({ value: size.value })) || [],
+        socialFeatures:
+          project.socialFeatures.map((feature) => ({ value: feature.value })) ||
+          [],
+        images:
+          project.images.map((img, index) => ({
+            url: img.url,
+            order: index,
+          })) || [],
       };
 
       setFormData(newFormData);
@@ -204,12 +225,9 @@ const ProjectForm = ({
         }
 
         // Set marker position if coordinates exist
-        if (
-          (project.location as any)?.latitude &&
-          (project.location as any)?.longitude
-        ) {
-          const lat = (project.location as any).latitude;
-          const lng = (project.location as any).longitude;
+        if (project.location.latitude && project.location.longitude) {
+          const lat = project.location.latitude;
+          const lng = project.location.longitude;
           setMarkerPosition({ lat, lng });
           // Also update form data with coordinates
           setFormData((prev) => ({
@@ -275,11 +293,6 @@ const ProjectForm = ({
   }, [formData.assignedAgents, agents]);
 
   useEffect(() => {
-    console.log("Project data:", project);
-    console.log("Office ID from project:", project?.officeId);
-    console.log("Form data office ID:", formData.officeId);
-    console.log("Offices list:", offices);
-
     // Check if the office exists in the offices list
     if (project?.officeId) {
       const officeExists = offices.some(
@@ -450,7 +463,8 @@ const ProjectForm = ({
             ? "Proje başarıyla güncellendi"
             : "Proje başarıyla oluşturuldu"
         );
-        router.push("/admin/projects");
+        //router.push("/admin/projects");
+        window.location.assign("/admin/projects");
       } else {
         toast.error(result.error || "Bir hata oluştu");
       }
@@ -625,7 +639,17 @@ const ProjectForm = ({
             required
           >
             {agents
-              ?.filter((agent) => agent.officeId === Number(formData.officeId))
+              ?.filter((agent) => {
+                // If no office is selected, show all agents
+                if (!formData.officeId) return true;
+                // Otherwise, show only agents from the selected office
+                // and exclude specific roles
+                const excludedRoleIds = [10, 11, 12, 4]; // Karşılama ve Servis Sorumlusu, İş Geliştirme, Proje Geliştirme
+                return (
+                  agent.officeId === Number(formData.officeId) &&
+                  !excludedRoleIds.includes(agent.role.id)
+                );
+              })
               .map((agent) => (
                 <SelectItem
                   key={agent.id.toString()}
@@ -653,9 +677,12 @@ const ProjectForm = ({
         <Input
           label="Başlangıç Tarihi"
           type="date"
-          value={formData.startDate}
+          value={formData.startDate.toISOString().split("T")[0]}
           onChange={(e) =>
-            setFormData((prev) => ({ ...prev, startDate: e.target.value }))
+            setFormData((prev) => ({
+              ...prev,
+              startDate: new Date(e.target.value),
+            }))
           }
           required
         />
@@ -663,9 +690,12 @@ const ProjectForm = ({
         <Input
           label="Teslim Tarihi"
           type="date"
-          value={formData.endDate}
+          value={formData.endDate.toISOString().split("T")[0]}
           onChange={(e) =>
-            setFormData((prev) => ({ ...prev, endDate: e.target.value }))
+            setFormData((prev) => ({
+              ...prev,
+              endDate: new Date(e.target.value),
+            }))
           }
           required
         />
@@ -881,25 +911,32 @@ const ProjectForm = ({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Görseller</h3>
         <ProjectImagesUploader
-          currentImages={formData.images.map((img) => img.url)}
-          onImagesUpload={(urls) =>
+          currentImages={formData.images.map((img) => ({
+            url: img.url,
+            order: img.order,
+          }))}
+          onImagesUpload={(urls: { url: string; order: number }[]) =>
             setFormData((prev) => ({
               ...prev,
-              images: urls.map((url) => ({ url })),
+              images: urls,
             }))
           }
           projectName={formData.name}
         />
       </div>
 
-      <Textarea
-        label="Açıklama"
-        value={formData.description}
-        onChange={(e) =>
-          setFormData((prev) => ({ ...prev, description: e.target.value }))
-        }
-        required
-      />
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Açıklama</h3>
+        <div className="min-h-[300px]">
+          <QuillEditor
+            value={formData.description}
+            onChange={(value) =>
+              setFormData((prev) => ({ ...prev, description: value }))
+            }
+            className="h-[260px]"
+          />
+        </div>
+      </div>
 
       <div className="flex justify-end gap-4">
         <Button

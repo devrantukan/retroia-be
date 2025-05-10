@@ -33,7 +33,12 @@ export async function createProject(data: z.infer<typeof projectSchema>) {
           create: validatedData.socialFeatures,
         },
         images: {
-          create: validatedData.images,
+          create: validatedData.images.map(
+            (img: { url: string; order: number }) => ({
+              url: img.url,
+              order: img.order,
+            })
+          ),
         },
       },
     });
@@ -52,23 +57,20 @@ export async function updateProject(
   try {
     const validatedData = projectSchema.parse(data);
 
-    // First, delete related records
-    await prisma.project.update({
-      where: { id },
-      data: {
-        unitSizes: {
-          deleteMany: {},
-        },
-        socialFeatures: {
-          deleteMany: {},
-        },
-        images: {
-          deleteMany: {},
-        },
-      },
-    });
+    // First, delete all existing images, unitSizes, and socialFeatures
+    await Promise.all([
+      prisma.projectImage.deleteMany({
+        where: { projectId: id },
+      }),
+      prisma.projectUnitSize.deleteMany({
+        where: { projectId: id },
+      }),
+      prisma.projectSocialFeatures.deleteMany({
+        where: { projectId: id },
+      }),
+    ]);
 
-    // Then update the project with all related data
+    // Then update the project with new data
     const project = await prisma.project.update({
       where: { id },
       data: {
@@ -97,7 +99,12 @@ export async function updateProject(
           create: validatedData.socialFeatures,
         },
         images: {
-          create: validatedData.images,
+          create: validatedData.images.map(
+            (img: { url: string; order: number }) => ({
+              url: img.url,
+              order: img.order,
+            })
+          ),
         },
       },
     });

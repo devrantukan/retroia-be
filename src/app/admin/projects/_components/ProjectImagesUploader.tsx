@@ -19,8 +19,8 @@ import {
 import { StrictModeDroppable } from "./StrictModeDroppable";
 
 interface Props {
-  currentImages?: string[];
-  onImagesUpload: (urls: string[]) => void;
+  currentImages?: { url: string; order: number }[];
+  onImagesUpload: (images: { url: string; order: number }[]) => void;
   label?: string;
   projectName?: string;
 }
@@ -32,87 +32,123 @@ export default function ProjectImagesUploader({
   projectName,
 }: Props) {
   const [uploading, setUploading] = useState(false);
-  const [previewUrls, setPreviewUrls] = useState<string[]>(currentImages);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const handleImageUpload = useCallback(
-    async (file: File) => {
-      try {
-        const slug = projectName
-          ? slugify(projectName, { lower: true, strict: true })
-          : "";
-        const url = await uploadProjectImage(file, slug);
-        return url;
-      } catch (error) {
-        console.error("Upload error:", error);
-        toast.error("Proje görseli yüklenirken bir hata oluştu");
-        return null;
-      }
-    },
-    [projectName]
-  );
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      if (!acceptedFiles.length || isDragging) return;
-
+      setUploading(true);
       try {
-        setUploading(true);
-        const uploadPromises = acceptedFiles.map(handleImageUpload);
-        const urls = await Promise.all(uploadPromises);
-        const validUrls = urls.filter((url): url is string => url !== null);
+        const urls = await Promise.all(
+          acceptedFiles.map(async (file) => {
+            const url = await uploadProjectImage(file, projectName);
+            return url;
+          })
+        );
 
-        if (validUrls.length > 0) {
-          const newUrls = [...previewUrls, ...validUrls];
-          setPreviewUrls(newUrls);
-          onImagesUpload(newUrls);
-          toast.success(
-            `${validUrls.length} proje görseli başarıyla yüklendi!`
-          );
-        }
+        const newImages = [
+          ...currentImages,
+          ...urls.map((url, index) => ({
+            url,
+            order: currentImages.length + index,
+          })),
+        ];
+        onImagesUpload(newImages);
       } catch (error) {
         console.error("Error uploading images:", error);
-        toast.error("Görseller yüklenirken bir hata oluştu");
+        toast.error("Görsel yüklenirken bir hata oluştu");
       } finally {
         setUploading(false);
       }
     },
-    [handleImageUpload, previewUrls, onImagesUpload, isDragging]
+    [currentImages, onImagesUpload, projectName]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "image/*": [".jpeg", ".jpg", ".png", ".webp"],
+      "image/*": [".png", ".jpg", ".jpeg", ".webp"],
     },
-    multiple: true,
-    noClick: isDragging,
-    maxFiles: 10,
+    maxSize: 5 * 1024 * 1024, // 5MB
   });
 
   const handleRemoveImage = (index: number) => {
-    const newUrls = previewUrls.filter((_, i) => i !== index);
-    setPreviewUrls(newUrls);
-    onImagesUpload(newUrls);
+    const newImages = currentImages
+      .filter((_, i) => i !== index)
+      .map((img, i) => ({
+        ...img,
+        order: i,
+      }));
+    onImagesUpload(newImages);
   };
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
-    const items = Array.from(previewUrls);
+    const items = Array.from(currentImages);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    setPreviewUrls(items);
-    onImagesUpload(items);
-    setIsDragging(false);
+    const reorderedImages = items.map((item, index) => ({
+      ...item,
+      order: index,
+    }));
+
+    onImagesUpload(reorderedImages);
   };
 
   return (
     <div className="space-y-4">
-      <label className="block text-sm font-medium text-gray-700">
-        {label || "Proje Görselleri"}
-      </label>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <StrictModeDroppable droppableId="images" direction="horizontal">
+          {(provided) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="flex flex-nowrap overflow-x-auto gap-4 pb-4"
+            >
+              {currentImages.map((image, index) => (
+                <Draggable
+                  key={image.url}
+                  draggableId={image.url}
+                  index={index}
+                >
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className={`relative aspect-[16/9] w-[300px] flex-shrink-0 ${
+                        snapshot.isDragging ? "z-50" : ""
+                      }`}
+                      style={{
+                        ...provided.draggableProps.style,
+                        transform: snapshot.isDragging
+                          ? provided.draggableProps.style?.transform
+                          : "none",
+                      }}
+                    >
+                      <Image
+                        src={image.url}
+                        alt={`Project image ${index + 1}`}
+                        fill
+                        className="object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </StrictModeDroppable>
+      </DragDropContext>
 
       <div
         {...getRootProps()}
@@ -121,72 +157,12 @@ export default function ProjectImagesUploader({
           hover:border-primary transition-colors`}
       >
         <input {...getInputProps()} />
-
-        {previewUrls.length > 0 ? (
-          <DragDropContext
-            onDragEnd={handleDragEnd}
-            onDragStart={() => setIsDragging(true)}
-          >
-            <StrictModeDroppable droppableId="images" direction="horizontal">
-              {(
-                provided: DroppableProvided,
-                snapshot: DroppableStateSnapshot
-              ) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-                >
-                  {previewUrls.map((url, index) => (
-                    <Draggable
-                      key={`${url}-${index}`}
-                      draggableId={`${url}-${index}`}
-                      index={index}
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className={`relative group aspect-video ${
-                            snapshot.isDragging ? "z-50" : ""
-                          }`}
-                        >
-                          <Image
-                            src={url}
-                            alt={`Project image ${index + 1}`}
-                            fill
-                            className="object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveImage(index);
-                            }}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </StrictModeDroppable>
-          </DragDropContext>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600">
-              {isDragActive
-                ? "Görselleri buraya bırakın"
-                : "Görseller yüklemek için tıklayın veya sürükleyin"}
-            </p>
-            <p className="text-xs text-gray-500">PNG, JPG, WEBP (max. 5MB)</p>
-          </div>
-        )}
+        <p className="text-sm text-gray-600">
+          {isDragActive
+            ? "Görselleri buraya bırakın"
+            : "Görsel yüklemek için tıklayın veya sürükleyin"}
+        </p>
+        <p className="text-xs text-gray-500">PNG, JPG, WEBP (max. 5MB)</p>
       </div>
     </div>
   );
