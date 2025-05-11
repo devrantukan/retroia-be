@@ -28,6 +28,13 @@ export default async function NewProjectPage() {
       name: true,
       surname: true,
       officeId: true,
+      role: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+        },
+      },
     },
   });
 
