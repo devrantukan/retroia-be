@@ -273,11 +273,13 @@ const Picture = ({
     if (imageId !== undefined) {
       // Handle existing image deletion
       setDeletedImages([...deletedImages, imageId]);
+      if (setExistingImages) {
+        setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+      }
     } else {
       // Handle new image deletion
       const newImages = [...images];
-      // Remove all three versions (1920x1080, thumbnail, and original)
-      newImages.splice(index, 3);
+      newImages.splice(index, 1);
       setImages(newImages);
     }
   };
@@ -454,11 +456,8 @@ const Picture = ({
         />
       )}
       <FileInput multiple={true} onSelect={handleFileSelect} className="mb-6" />
-      <div className="grid grid-cols-1 gap-4" aria-label="Property Images Grid">
-        <div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          aria-label="Property Images Container"
-        >
+      <div className="relative" aria-label="Property Images Grid">
+        <div className="flex overflow-x-auto gap-3 pb-4 scrollbar-hide">
           {unifiedImages.map((image, index) => (
             <div
               key={image.id}
@@ -467,7 +466,7 @@ const Picture = ({
               onDragEnd={handleDragEnd}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, index)}
-              className="transition-opacity"
+              className="transition-opacity flex-shrink-0 w-[300px]"
             >
               <PictureCard
                 src={image.url}
@@ -490,6 +489,36 @@ const Picture = ({
             </div>
           ))}
         </div>
+        {unifiedImages.length > 0 && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                const container = document.querySelector(".scrollbar-hide");
+                if (container) {
+                  container.scrollLeft -= 320;
+                }
+              }}
+              className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-r-lg hover:bg-black/70 transition-colors"
+            >
+              <ChevronLeftIcon className="w-6 h-6" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                const container = document.querySelector(".scrollbar-hide");
+                if (container) {
+                  container.scrollLeft += 320;
+                }
+              }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-l-lg hover:bg-black/70 transition-colors"
+            >
+              <ChevronRightIcon className="w-6 h-6" />
+            </button>
+          </>
+        )}
       </div>
 
       <div className="mt-4 flex flex-col gap-y-4">

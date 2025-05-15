@@ -427,7 +427,7 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
               <FormItem>
                 <FormLabel>Kinde User</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} disabled />
                 </FormControl>
                 <FormMessage />
               </FormItem>

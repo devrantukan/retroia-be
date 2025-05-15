@@ -166,24 +166,35 @@ export async function updateOfficeWorker(
 }
 
 export async function deleteOfficeWorker(id: number) {
-  const worker = await prisma.officeWorker.delete({
-    where: { id },
-    select: {
-      officeId: true,
-      office: true,
-      role: true,
-      id: true,
-      slug: true,
-    },
-  });
+  try {
+    // First delete all reviews associated with this worker
+    await prisma.officeWorkerReview.deleteMany({
+      where: { officeWorkerId: id },
+    });
 
-  revalidatePath("/admin/office-workers");
-  revalidateFrontend(`/ofis/${worker.officeId}/${worker.office.slug}/`);
-  revalidateFrontend(
-    `/ofis/${worker.officeId}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`
-  );
-  revalidateFrontend(`/`);
-  return worker;
+    // Then delete the worker
+    const worker = await prisma.officeWorker.delete({
+      where: { id },
+      select: {
+        officeId: true,
+        office: true,
+        role: true,
+        id: true,
+        slug: true,
+      },
+    });
+
+    revalidatePath("/admin/office-workers");
+    revalidateFrontend(`/ofis/${worker.officeId}/${worker.office.slug}/`);
+    revalidateFrontend(
+      `/ofis/${worker.officeId}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`
+    );
+    revalidateFrontend(`/`);
+    return worker;
+  } catch (error) {
+    console.error("Error deleting office worker:", error);
+    throw new Error("Personel silinirken bir hata oluştu");
+  }
 }
 
 export async function getOfficeWorker(id: number) {
