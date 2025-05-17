@@ -138,15 +138,17 @@ const Basic = (props: Props) => {
   };
 
   const handlePriceChange = (value: string) => {
-    const formattedValue = formatNumber(value);
-    setValue("price", parseInt(value.replace(/\D/g, "")) || 0); // Convert to number, default to 0
-    return formattedValue;
+    // Only allow digits
+    const numericValue = value.replace(/[^0-9]/g, "");
+    setValue("price", numericValue ? Number(numericValue) : 0, {
+      shouldValidate: true,
+    });
   };
 
   const handleDiscountedPriceChange = (value: string) => {
-    const formattedValue = formatNumber(value);
-    setValue("discountedPrice", value.replace(/\D/g, "") || "0"); // Convert to string, default to "0"
-    return formattedValue;
+    // Only allow digits
+    const numericValue = value.replace(/[^0-9]/g, "");
+    setValue("discountedPrice", numericValue, { shouldValidate: true });
   };
 
   return (
@@ -310,12 +312,11 @@ const Basic = (props: Props) => {
           isInvalid={!!errors.discountedPrice}
           label="İndirimli Fiyat"
           name="discountedPrice"
-          defaultValue={
-            getValues().discountedPrice
-              ? formatNumber(getValues().discountedPrice ?? "")
-              : ""
-          }
-          onValueChange={handleDiscountedPriceChange}
+          defaultValue={getValues().discountedPrice ?? ""}
+          onInput={(e) => handleDiscountedPriceChange(e.currentTarget.value)}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
         />
         <Input
           {...register("price", {
@@ -325,8 +326,11 @@ const Basic = (props: Props) => {
           isInvalid={!!errors.price}
           label="Fiyat"
           name="price"
-          defaultValue={formatNumber(getValues().price?.toString() || "")}
-          onValueChange={handlePriceChange}
+          defaultValue={getValues().price?.toString() || ""}
+          onInput={(e) => handlePriceChange(e.currentTarget.value)}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
         />
       </div>
       <div className="flex justify-center col-span-3 gap-3">

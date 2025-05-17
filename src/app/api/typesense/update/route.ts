@@ -15,8 +15,12 @@ const client = new Client({
 });
 
 export async function POST(request: Request) {
+  console.log("Typesense update API called");
   try {
-    const { propertyId, isPublished } = await request.json();
+    const body = await request.json();
+    console.log("Request body:", body);
+    const { propertyId, isPublished } = body;
+    console.log("Typesense update request:", { propertyId, isPublished });
 
     if (isPublished) {
       // Get property data
@@ -33,6 +37,10 @@ export async function POST(request: Request) {
           images: {
             select: {
               url: true,
+              order: true,
+            },
+            orderBy: {
+              order: "asc",
             },
           },
           location: {
@@ -130,11 +138,29 @@ export async function POST(request: Request) {
       // Upsert document in Typesense
       await client.collections("posts").documents().upsert(document);
     } else {
-      // Delete document from Typesense if unpublished
-      await client
-        .collections("posts")
-        .documents(propertyId.toString())
-        .delete();
+      console.log(
+        "Attempting to delete document from Typesense:",
+        propertyId.toString()
+      );
+      try {
+        // Try to delete the document - if it doesn't exist, Typesense will throw an error
+        try {
+          await client
+            .collections("posts")
+            .documents(propertyId.toString())
+            .delete();
+          console.log("Successfully deleted document from Typesense");
+        } catch (error: any) {
+          if (error.name === "ObjectNotFound") {
+            console.log("Document not found in Typesense, skipping deletion");
+          } else {
+            throw error;
+          }
+        }
+      } catch (deleteError) {
+        console.error("Error deleting from Typesense:", deleteError);
+        throw deleteError;
+      }
     }
 
     return NextResponse.json({ success: true });

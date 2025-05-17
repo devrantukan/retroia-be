@@ -148,7 +148,16 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
       router.refresh();
     } catch (error) {
       console.error(error);
-      toast.error("Bir hata oluştu!");
+      if (
+        error instanceof Error &&
+        error.message.includes("USER_ALREADY_EXISTS")
+      ) {
+        toast.error(
+          "Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut."
+        );
+      } else {
+        toast.error("Bir hata oluştu!");
+      }
     } finally {
       setLoading(false);
     }

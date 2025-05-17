@@ -212,6 +212,36 @@ export async function editProperty(
       descriptorData = await manageDescriptorData(data.propertyDescriptors, id);
     }
 
+    // Remove from Typesense index since property is now unpublished
+    try {
+      const baseUrl =
+        process.env.NODE_ENV === "development"
+          ? "http://localhost:3000"
+          : process.env.NEXT_PUBLIC_FRONTEND_URL;
+
+      if (!baseUrl) {
+        throw new Error("Base URL is not defined");
+      }
+
+      const response = await fetch(`${baseUrl}/api/typesense/update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          propertyId: id,
+          isPublished: false,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Typesense update failed:", await response.text());
+      }
+    } catch (error) {
+      console.error("Error removing from Typesense:", error);
+      // Don't throw here, just log the error
+    }
+
     return await prisma.$transaction(
       async (tx) => {
         // Create descriptors if needed
@@ -279,6 +309,7 @@ export async function editProperty(
             agentId: Number(data.agentId) || undefined,
             videoSource: data.videoSource || "",
             threeDSource: data.threeDSource || "",
+            publishingStatus: "PENDING",
             location: {
               update: {
                 ...data.location,
@@ -429,10 +460,12 @@ export async function getPropertyById(id: string) {
 
 export async function revalidateProperty(propertyId: string) {
   try {
-    // Revalidate both the property page and home page
+    // Revalidate the property page, home page, properties list page, and search page
     await Promise.all([
       revalidateFrontend(`/portfoy/${propertyId}/`),
       revalidateFrontend("/"),
+      revalidateFrontend("/user/properties"),
+      revalidateFrontend("/arsa-arazi/satilik/"),
     ]);
     return true;
   } catch (error) {
