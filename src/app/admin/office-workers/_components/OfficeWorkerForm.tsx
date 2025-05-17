@@ -148,21 +148,25 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
       router.refresh();
     } catch (error) {
       console.error(error);
-      if (
-        error instanceof Error &&
-        error.message.includes("USER_ALREADY_EXISTS")
-      ) {
-        toast.error(
-          "Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut. Lütfen farklı bir e-posta adresi kullanın."
+      try {
+        // Try to parse the error message as JSON
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        const errorJson = JSON.parse(
+          errorMessage.split("Failed to create Kinde user: ")[1] || "{}"
         );
-      } else if (
-        error instanceof Error &&
-        error.message.includes("Failed to create Kinde user")
-      ) {
-        toast.error(
-          "Kinde kullanıcısı oluşturulurken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
-        );
-      } else {
+
+        if (errorJson.errors?.[0]?.code === "USER_ALREADY_EXISTS") {
+          toast.error(
+            "Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut. Lütfen farklı bir e-posta adresi kullanın."
+          );
+        } else {
+          toast.error(
+            "Kinde kullanıcısı oluşturulurken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
+          );
+        }
+      } catch (parseError) {
+        // If JSON parsing fails, show generic error
         toast.error("Bir hata oluştu!");
       }
     } finally {
