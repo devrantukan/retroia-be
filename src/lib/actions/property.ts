@@ -217,10 +217,10 @@ export async function editProperty(
       const baseUrl =
         process.env.NODE_ENV === "development"
           ? "http://localhost:3000"
-          : process.env.NEXT_PUBLIC_FRONTEND_URL;
+          : process.env.NEXT_PUBLIC_SITE_URL;
 
       if (!baseUrl) {
-        throw new Error("Base URL is not defined");
+        throw new Error("Server URL is not defined");
       }
 
       const response = await fetch(`${baseUrl}/api/typesense/update`, {
