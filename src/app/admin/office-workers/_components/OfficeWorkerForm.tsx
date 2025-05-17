@@ -153,7 +153,14 @@ export function OfficeWorkerForm({ worker }: { worker?: any }) {
         error.message.includes("USER_ALREADY_EXISTS")
       ) {
         toast.error(
-          "Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut."
+          "Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut. Lütfen farklı bir e-posta adresi kullanın."
+        );
+      } else if (
+        error instanceof Error &&
+        error.message.includes("Failed to create Kinde user")
+      ) {
+        toast.error(
+          "Kinde kullanıcısı oluşturulurken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
         );
       } else {
         toast.error("Bir hata oluştu!");
