@@ -16,7 +16,7 @@ async function revalidateFrontend(path: string) {
   }
 
   try {
-    const response = await fetch(`${FRONTEND_URL}/api/revalidate`, {
+    const response = await fetch(`${FRONTEND_URL}/api/revalidate/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
