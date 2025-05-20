@@ -16,13 +16,16 @@ async function revalidateFrontend(path: string) {
   }
 
   try {
+    // Add /emlak/ prefix to the path if it doesn't already have it
+
     const response = await fetch(`${FRONTEND_URL}/api/revalidate/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${REVALIDATION_TOKEN}`,
       },
       body: JSON.stringify({
-        path,
+        path: path,
         token: REVALIDATION_TOKEN,
       }),
     }).catch(() => {
@@ -31,7 +34,11 @@ async function revalidateFrontend(path: string) {
     });
 
     if (!response?.ok) {
-      console.warn(`Failed to revalidate ${path}: ${response?.statusText}`);
+      const errorText = await response?.text();
+      console.warn(
+        `Failed to revalidate ${path}: ${response?.statusText}`,
+        errorText
+      );
     }
   } catch (error) {
     console.warn(`Revalidation warning for ${path}:`, error);
@@ -102,7 +109,7 @@ export async function createOfficeWorker(data: OfficeWorkerFormType) {
       revalidateFrontend(
         `/ofis/${worker.office.id}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`
       ),
-      revalidateFrontend(`/ofislerimiz/`),
+
       revalidateFrontend(`/danismanlarimiz/`),
     ]);
 
@@ -153,8 +160,8 @@ export async function updateOfficeWorker(
     // Revalidate frontend paths with proper office data
     await Promise.all([
       revalidateFrontend("/"),
-      revalidateFrontend(`/ofislerimiz/`),
-      revalidateFrontend(`/danismanlarimiz/`),
+      revalidateFrontend("/ofislerimiz/"),
+      revalidateFrontend("/danismanlarimiz/"),
       revalidateFrontend(`/ofis/${worker.office.id}/${worker.office.slug}/`),
       revalidateFrontend(
         `/ofis/${worker.office.id}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`

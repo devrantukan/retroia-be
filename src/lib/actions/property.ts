@@ -22,7 +22,7 @@ const supabase = createClient(
 );
 
 const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL;
-const REVALIDATION_TOKEN = process.env.NEXT_PUBLIC_REVALIDATE_TOKEN;
+const REVALIDATION_TOKEN = process.env.NEXT_PUBLIC_REVALIDATION_TOKEN;
 
 async function revalidateFrontend(path: string) {
   try {
