@@ -189,6 +189,8 @@ export async function deleteOfficeWorker(id: number) {
     revalidateFrontend(
       `/ofis/${worker.officeId}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`
     );
+    revalidateFrontend(`/ofislerimiz/`);
+    revalidateFrontend(`/danismanlarimiz/`);
     revalidateFrontend(`/`);
     return worker;
   } catch (error) {
