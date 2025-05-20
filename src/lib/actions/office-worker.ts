@@ -102,6 +102,8 @@ export async function createOfficeWorker(data: OfficeWorkerFormType) {
       revalidateFrontend(
         `/ofis/${worker.office.id}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`
       ),
+      revalidateFrontend(`/ofislerimiz/`),
+      revalidateFrontend(`/danismanlarimiz/`),
     ]);
 
     return worker;
@@ -151,7 +153,8 @@ export async function updateOfficeWorker(
     // Revalidate frontend paths with proper office data
     await Promise.all([
       revalidateFrontend("/"),
-      revalidateFrontend("/ofislerimiz/"),
+      revalidateFrontend(`/ofislerimiz/`),
+      revalidateFrontend(`/danismanlarimiz/`),
       revalidateFrontend(`/ofis/${worker.office.id}/${worker.office.slug}/`),
       revalidateFrontend(
         `/ofis/${worker.office.id}/${worker.office.slug}/${worker.role.slug}/${worker.id}/${worker.slug}/`
