@@ -126,14 +126,16 @@ const ProjectsTable = ({
       key: "name",
       label: "PROJE ADI",
       render: (project: any) => (
-        <TableCell className="text-left">{project.name}</TableCell>
+        <TableCell key={`name-${project.id}`} className="text-left">
+          {project.name}
+        </TableCell>
       ),
     },
     {
       key: "location",
       label: "KONUM",
       render: (project: any) => (
-        <TableCell>
+        <TableCell key={`location-${project.id}`}>
           {project.location?.city}, {project.location?.district}
         </TableCell>
       ),
@@ -142,7 +144,7 @@ const ProjectsTable = ({
       key: "feature",
       label: "ÖZELLİKLER",
       render: (project: any) => (
-        <TableCell>
+        <TableCell key={`feature-${project.id}`}>
           {project.feature?.bedrooms} Yatak Odası, {project.feature?.bathrooms}{" "}
           Banyo
         </TableCell>
@@ -152,7 +154,7 @@ const ProjectsTable = ({
       key: "unitSizes",
       label: "BİRİM BÜYÜKLÜKLERİ",
       render: (project: any) => (
-        <TableCell>
+        <TableCell key={`unitSizes-${project.id}`}>
           {project.unitSizes.map((size: any) => size.value).join(", ")}
         </TableCell>
       ),
@@ -161,7 +163,7 @@ const ProjectsTable = ({
       key: "publishingStatus",
       label: "YAYIN DURUMU",
       render: (project: any) => (
-        <TableCell>
+        <TableCell key={`publishingStatus-${project.id}`}>
           <Switch
             isSelected={project.publishingStatus === "PUBLISHED"}
             onValueChange={async (checked) => {
@@ -197,7 +199,7 @@ const ProjectsTable = ({
       key: "createdAt",
       label: "OLUŞTURMA TARİHİ",
       render: (project: any) => (
-        <TableCell className="text-center">
+        <TableCell key={`createdAt-${project.id}`} className="text-center">
           {new Date(project.createdAt).toLocaleDateString("tr-TR")}
         </TableCell>
       ),
@@ -206,7 +208,7 @@ const ProjectsTable = ({
       key: "actions",
       label: "İŞLEMLER",
       render: (project: any) => (
-        <TableCell>
+        <TableCell key={`actions-${project.id}`}>
           <div className="flex items-center justify-end gap-4">
             <Tooltip content="Ön İzleme">
               <Link href={`/admin/projects/${project.id}`}>
