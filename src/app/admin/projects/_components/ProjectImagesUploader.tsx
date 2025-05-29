@@ -117,7 +117,7 @@ export default function ProjectImagesUploader({
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       {...provided.dragHandleProps}
-                      className={`relative aspect-[16/9] w-[300px] flex-shrink-0 ${
+                      className={`relative group aspect-[16/9] w-[300px] flex-shrink-0 ${
                         snapshot.isDragging ? "z-50" : ""
                       }`}
                       style={{
@@ -133,13 +133,15 @@ export default function ProjectImagesUploader({
                         fill
                         className="object-cover rounded-lg"
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(index)}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </Draggable>
