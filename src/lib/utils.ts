@@ -51,21 +51,85 @@ export async function uploadToSupabase(
 
 export async function uploadProjectImage(file: File, projectName?: string) {
   try {
-    const fileExt = file.name.split(".").pop();
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      throw new Error(
+        "Invalid file type. Please upload a JPEG, PNG, or WebP image."
+      );
+    }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      throw new Error("File size exceeds 5MB limit.");
+    }
+
+    // Sanitize file extension
+    const fileExt = file.name.split(".").pop()?.toLowerCase();
+    if (!fileExt || !["jpg", "jpeg", "png", "webp"].includes(fileExt)) {
+      throw new Error(
+        "Invalid file extension. Please upload a JPEG, PNG, or WebP image."
+      );
+    }
+
+    // Sanitize project name for Windows compatibility
+    const sanitizedProjectName = projectName
+      ? projectName.replace(/[^a-zA-Z0-9-]/g, "-").toLowerCase()
+      : "";
+
     const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
-    const fileName = projectName
-      ? `${projectName}-${uniqueId}.${fileExt}`
+    const fileName = sanitizedProjectName
+      ? `${sanitizedProjectName}-${uniqueId}.${fileExt}`
       : `${uniqueId}.${fileExt}`;
 
+    // First check if the file already exists
+    const { data: existingFile } = await supabase.storage
+      .from("project-images")
+      .list(fileName);
+
+    if (existingFile && existingFile.length > 0) {
+      // If file exists, use a different unique ID
+      const newUniqueId = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2)}`;
+      const newFileName = sanitizedProjectName
+        ? `${sanitizedProjectName}-${newUniqueId}.${fileExt}`
+        : `${newUniqueId}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from("project-images")
+        .upload(newFileName, file, {
+          upsert: true,
+          cacheControl: "3600",
+          contentType: file.type,
+        });
+
+      if (error) {
+        console.error("Supabase upload error:", error);
+        throw new Error(`Upload failed: ${error.message}`);
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("project-images")
+        .getPublicUrl(newFileName);
+
+      return urlData.publicUrl;
+    }
+
+    // If file doesn't exist, proceed with normal upload
     const { data, error } = await supabase.storage
       .from("project-images")
       .upload(fileName, file, {
-        upsert: false,
+        upsert: true,
         cacheControl: "3600",
         contentType: file.type,
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase upload error:", error);
+      throw new Error(`Upload failed: ${error.message}`);
+    }
 
     const { data: urlData } = supabase.storage
       .from("project-images")
@@ -74,6 +138,9 @@ export async function uploadProjectImage(file: File, projectName?: string) {
     return urlData.publicUrl;
   } catch (error) {
     console.error("Error uploading project image to Supabase:", error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("Failed to upload project image");
   }
 }
